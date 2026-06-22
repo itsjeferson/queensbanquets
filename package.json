@@ -1,0 +1,16 @@
+{
+  "name": "queens-banquet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Queens Banquet wedding landing page system with frontend, API, backend, and database-ready structure.",
+  "workspaces": [
+    "frontend",
+    "api",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "preview": "npm run preview --workspace frontend"
+  }
+}
