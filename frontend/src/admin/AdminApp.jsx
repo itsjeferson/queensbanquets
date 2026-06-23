@@ -17,6 +17,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
+import AdminPhotoField from './AdminPhotoField.jsx';
 import './admin.css';
 
 const ADMIN_SESSION_KEY = 'queens-banquet-admin-session';
@@ -420,20 +421,63 @@ function PackagesEditor({ draft, updateDraft }) {
 function TestimonialsEditor({ draft, updateDraft }) {
   return (
     <section className="admin-panel">
-      <EditorHeading title="Testimonials" description="Edit client quotes and labels." />
-      <EditableCards
-        items={draft.testimonials}
-        fields={['quote', 'author', 'event', 'photoUrl']}
-        updateDraft={updateDraft}
-        path="testimonials"
-        textareaFields={['quote']}
-        createItem={() => ({
-          quote: 'Add a client testimonial.',
-          author: 'Client name',
-          event: 'Event type',
-          photoUrl: '',
-        })}
+      <EditorHeading
+        title="Testimonials"
+        description="Edit client quotes, labels, and photos using an online URL or uploaded image."
       />
+
+      <div className="admin-list-editor">
+        {draft.testimonials.map((testimonial, index) => (
+          <div className="admin-inline-card" key={`testimonial-${index}`}>
+            <AdminTextarea
+              label="Quote"
+              value={testimonial.quote}
+              onChange={(value) => updateDraft((next) => { next.testimonials[index].quote = value; })}
+            />
+            <AdminField
+              label="Author"
+              value={testimonial.author}
+              onChange={(value) => updateDraft((next) => { next.testimonials[index].author = value; })}
+            />
+            <AdminField
+              label="Event"
+              value={testimonial.event}
+              onChange={(value) => updateDraft((next) => { next.testimonials[index].event = value; })}
+            />
+            <AdminPhotoField
+              label="Client photo"
+              value={testimonial.photoUrl ?? ''}
+              onChange={(value) => updateDraft((next) => { next.testimonials[index].photoUrl = value; })}
+            />
+            <button
+              className="admin-danger-button"
+              type="button"
+              onClick={() => updateDraft((next) => { next.testimonials.splice(index, 1); })}
+            >
+              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
+              Remove testimonial
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="admin-secondary-button admin-add-button"
+        type="button"
+        onClick={() =>
+          updateDraft((next) => {
+            next.testimonials.push({
+              quote: 'Add a client testimonial.',
+              author: 'Client name',
+              event: 'Event type',
+              photoUrl: '',
+            });
+          })
+        }
+      >
+        <Plus aria-hidden="true" size={17} strokeWidth={1.6} />
+        Add testimonial
+      </button>
     </section>
   );
 }

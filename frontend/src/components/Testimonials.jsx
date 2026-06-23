@@ -17,6 +17,7 @@ function Testimonials() {
     content: { testimonials },
   } = useLandingContent();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [brokenPhotos, setBrokenPhotos] = useState({});
 
   if (!testimonials.length) {
     return null;
@@ -46,8 +47,12 @@ function Testimonials() {
 
         <article className="testimonial-card testimonial-card-active">
           <div className="testimonial-photo">
-            {activeTestimonial.photoUrl ? (
-              <img src={activeTestimonial.photoUrl} alt={`${activeTestimonial.author} testimonial`} />
+            {activeTestimonial.photoUrl && !brokenPhotos[activeIndex] ? (
+              <img
+                src={activeTestimonial.photoUrl}
+                alt={`${activeTestimonial.author} testimonial`}
+                onError={() => setBrokenPhotos((current) => ({ ...current, [activeIndex]: true }))}
+              />
             ) : (
               <span>{getInitials(activeTestimonial.author)}</span>
             )}
