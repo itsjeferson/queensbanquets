@@ -3,7 +3,7 @@
   min-height: 100vh;
   background:
     radial-gradient(circle at top right, rgba(213, 168, 79, 0.2), transparent 28rem),
-    linear-gradient(135deg, #070604, #15110c 48%, #070604);
+    linear-gradient(135deg, #fffdf7, #f8efe0 48%, #fffaf0);
 }
 
 .admin-login-page {
@@ -19,7 +19,7 @@
   padding: clamp(1.4rem, 4vw, 2.4rem);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: rgba(9, 8, 6, 0.86);
+  background: rgba(255, 253, 247, 0.94);
   box-shadow: var(--shadow);
 }
 
@@ -40,7 +40,7 @@
 .admin-login-card p,
 .admin-section-heading p,
 .admin-topbar p {
-  color: var(--gold-soft);
+  color: var(--gold);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.18em;
@@ -68,7 +68,7 @@
 
 .admin-login-error,
 .admin-status {
-  color: var(--gold-soft);
+  color: var(--gold);
   font-weight: 800;
 }
 
@@ -86,7 +86,7 @@
   height: 100vh;
   padding: 1.25rem;
   border-right: 1px solid var(--line);
-  background: rgba(9, 8, 6, 0.9);
+  background: rgba(255, 253, 247, 0.94);
 }
 
 .admin-brand {
@@ -111,7 +111,7 @@
 }
 
 .admin-brand strong {
-  color: var(--gold-soft);
+  color: var(--gold);
 }
 
 .admin-nav {
@@ -132,7 +132,7 @@
 
 .admin-nav button {
   border: 1px solid transparent;
-  color: var(--ivory-muted);
+  color: var(--charcoal);
   background: transparent;
   text-align: left;
 }
@@ -140,14 +140,14 @@
 .admin-nav button.active,
 .admin-nav button:hover {
   border-color: var(--line);
-  color: var(--gold-soft);
+  color: var(--gold);
   background: rgba(213, 168, 79, 0.1);
 }
 
 .admin-ghost-button {
   margin-top: auto;
   border: 1px solid var(--line);
-  color: var(--ivory);
+  color: var(--black);
   background: transparent;
 }
 
@@ -162,7 +162,7 @@
 .admin-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: rgba(255, 250, 240, 0.055);
+  background: rgba(255, 253, 247, 0.84);
   box-shadow: var(--shadow);
 }
 
@@ -205,8 +205,8 @@
 }
 
 .admin-secondary-button {
-  color: var(--gold-soft);
-  background: rgba(9, 8, 6, 0.54);
+  color: var(--black);
+  background: rgba(255, 253, 247, 0.78);
   border-color: var(--line);
 }
 
@@ -252,7 +252,7 @@
 .admin-inline-card {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: rgba(9, 8, 6, 0.44);
+  background: rgba(255, 250, 240, 0.78);
 }
 
 .admin-stat-grid article {
@@ -262,7 +262,7 @@
 }
 
 .admin-stat-grid strong {
-  color: var(--gold-soft);
+  color: var(--gold);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 2.4rem;
 }
@@ -285,7 +285,7 @@
 }
 
 .admin-note code {
-  color: var(--gold-soft);
+  color: var(--gold);
 }
 
 .admin-form-grid,
@@ -318,7 +318,7 @@
 .admin-field {
   display: grid;
   gap: 0.5rem;
-  color: var(--gold-soft);
+  color: var(--gold);
   font-size: 0.86rem;
   font-weight: 800;
 }
@@ -326,12 +326,12 @@
 .admin-field input,
 .admin-field textarea {
   width: 100%;
-  border: 1px solid rgba(243, 217, 147, 0.25);
+  border: 1px solid rgba(45, 36, 24, 0.16);
   border-radius: 16px;
   outline: none;
   padding: 0.95rem 1rem;
   color: var(--ivory);
-  background: rgba(9, 8, 6, 0.72);
+  background: rgba(255, 253, 247, 0.9);
 }
 
 .admin-field textarea {
