@@ -1,3 +1,4 @@
+import { CalendarCheck, HeartHandshake, MessageCircle } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 
 function Hero() {
@@ -15,9 +16,11 @@ function Hero() {
 
         <div className="hero-actions">
           <a className="button button-primary" href="#contact">
+            <CalendarCheck aria-hidden="true" size={19} strokeWidth={1.7} />
             {heroContent.primaryCta}
           </a>
           <a className="button button-secondary" href="#testimonials">
+            <MessageCircle aria-hidden="true" size={19} strokeWidth={1.7} />
             {heroContent.secondaryCta}
           </a>
         </div>
@@ -25,6 +28,7 @@ function Hero() {
         <dl className="hero-highlights" aria-label="Coordination highlights">
           {highlights.map((item) => (
             <div key={item.label}>
+              <HeartHandshake aria-hidden="true" size={22} strokeWidth={1.6} />
               <dt>{item.value}</dt>
               <dd>{item.label}</dd>
             </div>

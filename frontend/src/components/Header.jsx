@@ -1,3 +1,4 @@
+import { CalendarDays } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 
 function Header() {
@@ -24,6 +25,7 @@ function Header() {
       </nav>
 
       <a className="nav-cta" href="#contact">
+        <CalendarDays aria-hidden="true" size={18} strokeWidth={1.7} />
         Reserve a Date
       </a>
     </header>

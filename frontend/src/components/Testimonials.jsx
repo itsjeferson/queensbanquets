@@ -1,3 +1,4 @@
+import { Quote } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import SectionHeading from './SectionHeading.jsx';
 
@@ -16,6 +17,7 @@ function Testimonials() {
       <div className="testimonial-grid">
         {testimonials.map((testimonial) => (
           <article className="testimonial-card" key={testimonial.quote}>
+            <Quote aria-hidden="true" size={24} strokeWidth={1.5} />
             <p>&ldquo;{testimonial.quote}&rdquo;</p>
             <div>
               <strong>{testimonial.author}</strong>

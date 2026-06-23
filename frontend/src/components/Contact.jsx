@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CalendarClock, Mail, Phone, Send, UserRound } from 'lucide-react';
 import { submitInquiry } from '../api/inquiries.js';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import SectionHeading from './SectionHeading.jsx';
@@ -12,6 +13,14 @@ const initialFormState = {
   coordinationNeed: 'Wedding coordination',
   guests: '',
   message: '',
+};
+
+const contactIcons = {
+  Owner: UserRound,
+  Viber: Phone,
+  Mobile: Phone,
+  Landline: Phone,
+  Email: Mail,
 };
 
 function Contact() {
@@ -49,7 +58,13 @@ function Contact() {
         <ul className="contact-list">
           {contactChannels.map((channel) => (
             <li key={channel.label}>
-              <span>{channel.label}</span>
+              <span>
+                {(() => {
+                  const Icon = contactIcons[channel.label] ?? CalendarClock;
+                  return <Icon aria-hidden="true" size={18} strokeWidth={1.6} />;
+                })()}
+                {channel.label}
+              </span>
               {channel.href ? <a href={channel.href}>{channel.value}</a> : <strong>{channel.value}</strong>}
             </li>
           ))}
@@ -141,6 +156,7 @@ function Contact() {
         </label>
 
         <button className="button button-primary" type="submit" disabled={status === 'submitting'}>
+          <Send aria-hidden="true" size={18} strokeWidth={1.7} />
           {status === 'submitting' ? 'Sending...' : 'Request Meeting'}
         </button>
 

@@ -1,3 +1,4 @@
+import { ClipboardCheck } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import SectionHeading from './SectionHeading.jsx';
 
@@ -16,7 +17,10 @@ function Services() {
       <div className="card-grid">
         {services.map((service, index) => (
           <article className="service-card" key={service.title}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
+            <span>
+              <ClipboardCheck aria-hidden="true" size={22} strokeWidth={1.6} />
+              {String(index + 1).padStart(2, '0')}
+            </span>
             <h3>{service.title}</h3>
             <p>{service.description}</p>
           </article>

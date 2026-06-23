@@ -1,3 +1,4 @@
+import { CheckCircle2 } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import SectionHeading from './SectionHeading.jsx';
 
@@ -23,7 +24,10 @@ function Packages() {
             <h3>{eventPackage.name}</h3>
             <ul>
               {eventPackage.features.map((feature) => (
-                <li key={feature}>{feature}</li>
+                <li key={feature}>
+                  <CheckCircle2 aria-hidden="true" size={17} strokeWidth={1.7} />
+                  {feature}
+                </li>
               ))}
             </ul>
             <a href="#contact">Request details</a>

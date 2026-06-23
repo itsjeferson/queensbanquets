@@ -1,4 +1,21 @@
 import { useState } from 'react';
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  Eye,
+  FileText,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  MessageSquareQuote,
+  Package,
+  Plus,
+  RotateCcw,
+  Save,
+  Settings,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import './admin.css';
 
@@ -7,12 +24,12 @@ const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? 'queensbanquet07@gmail.c
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? 'marou-admin';
 
 const sidebarItems = [
-  { id: 'overview', label: 'Dashboard' },
-  { id: 'brand', label: 'Brand & Hero' },
-  { id: 'contact', label: 'Contact Details' },
-  { id: 'services', label: 'Coordination Services' },
-  { id: 'packages', label: 'Packages' },
-  { id: 'testimonials', label: 'Testimonials' },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'brand', label: 'Brand & Hero', icon: Settings },
+  { id: 'contact', label: 'Contact Details', icon: UserRound },
+  { id: 'services', label: 'Coordination Services', icon: BriefcaseBusiness },
+  { id: 'packages', label: 'Packages', icon: Package },
+  { id: 'testimonials', label: 'Testimonials', icon: MessageSquareQuote },
 ];
 
 function AdminApp() {
@@ -69,19 +86,24 @@ function AdminApp() {
         </div>
 
         <nav className="admin-nav" aria-label="Admin sections">
-          {sidebarItems.map((item) => (
-            <button
-              className={activeSection === item.id ? 'active' : ''}
-              key={item.id}
-              type="button"
-              onClick={() => setActiveSection(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                className={activeSection === item.id ? 'active' : ''}
+                key={item.id}
+                type="button"
+                onClick={() => setActiveSection(item.id)}
+              >
+                <Icon aria-hidden="true" size={18} strokeWidth={1.6} />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
         <button className="admin-ghost-button" type="button" onClick={handleLogout}>
+          <LogOut aria-hidden="true" size={18} strokeWidth={1.6} />
           Logout
         </button>
       </aside>
@@ -94,12 +116,15 @@ function AdminApp() {
           </div>
           <div className="admin-actions">
             <a className="admin-secondary-button" href="/">
+              <Eye aria-hidden="true" size={18} strokeWidth={1.6} />
               View Site
             </a>
             <button className="admin-secondary-button" type="button" onClick={handleReset}>
+              <RotateCcw aria-hidden="true" size={18} strokeWidth={1.6} />
               Reset Local Content
             </button>
             <button className="admin-primary-button" type="button" onClick={saveChanges}>
+              <Save aria-hidden="true" size={18} strokeWidth={1.6} />
               Save Changes
             </button>
           </div>
@@ -169,6 +194,7 @@ function AdminLogin({ onLoginSuccess }) {
           />
         </label>
         <button className="admin-primary-button" type="submit">
+          <LogIn aria-hidden="true" size={18} strokeWidth={1.6} />
           Login
         </button>
         {error ? <span className="admin-login-error">{error}</span> : null}
@@ -180,10 +206,10 @@ function AdminLogin({ onLoginSuccess }) {
 
 function Overview({ content }) {
   const cards = [
-    { label: 'Coordination services', value: content.services.length },
-    { label: 'Packages', value: content.packages.length },
-    { label: 'Testimonials', value: content.testimonials.length },
-    { label: 'Contact channels', value: content.contactChannels.length },
+    { label: 'Coordination services', value: content.services.length, icon: BriefcaseBusiness },
+    { label: 'Packages', value: content.packages.length, icon: Package },
+    { label: 'Testimonials', value: content.testimonials.length, icon: MessageSquareQuote },
+    { label: 'Contact channels', value: content.contactChannels.length, icon: BarChart3 },
   ];
 
   return (
@@ -193,12 +219,16 @@ function Overview({ content }) {
         <h2>Manage what visitors see on the landing page.</h2>
       </div>
       <div className="admin-stat-grid">
-        {cards.map((card) => (
-          <article key={card.label}>
-            <strong>{card.value}</strong>
-            <span>{card.label}</span>
-          </article>
-        ))}
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <article key={card.label}>
+              <Icon aria-hidden="true" size={23} strokeWidth={1.6} />
+              <strong>{card.value}</strong>
+              <span>{card.label}</span>
+            </article>
+          );
+        })}
       </div>
       <div className="admin-note">
         <h3>Admin access</h3>
@@ -292,6 +322,7 @@ function ContactEditor({ draft, updateDraft }) {
               type="button"
               onClick={() => updateDraft((next) => { next.contactChannels.splice(index, 1); })}
             >
+              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
               Remove contact
             </button>
           </div>
@@ -306,6 +337,7 @@ function ContactEditor({ draft, updateDraft }) {
           })
         }
       >
+        <Plus aria-hidden="true" size={17} strokeWidth={1.6} />
         Add contact channel
       </button>
     </section>
@@ -358,6 +390,7 @@ function PackagesEditor({ draft, updateDraft }) {
               type="button"
               onClick={() => updateDraft((next) => { next.packages.splice(index, 1); })}
             >
+              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
               Remove package
             </button>
           </div>
@@ -376,6 +409,7 @@ function PackagesEditor({ draft, updateDraft }) {
           })
         }
       >
+        <Plus aria-hidden="true" size={17} strokeWidth={1.6} />
         Add package
       </button>
     </section>
@@ -424,6 +458,7 @@ function EditableCards({ items, fields, updateDraft, path, textareaFields = ['de
               type="button"
               onClick={() => updateDraft((next) => { next[path].splice(index, 1); })}
             >
+              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
               Remove item
             </button>
           </div>
@@ -435,6 +470,7 @@ function EditableCards({ items, fields, updateDraft, path, textareaFields = ['de
           type="button"
           onClick={() => updateDraft((next) => { next[path].push(createItem()); })}
         >
+          <Plus aria-hidden="true" size={17} strokeWidth={1.6} />
           Add item
         </button>
       ) : null}
@@ -446,7 +482,10 @@ function EditorHeading({ title, description }) {
   return (
     <div className="admin-section-heading">
       <p>Content editor</p>
-      <h2>{title}</h2>
+      <h2>
+        <FileText aria-hidden="true" size={26} strokeWidth={1.5} />
+        {title}
+      </h2>
       <span>{description}</span>
     </div>
   );
