@@ -130,8 +130,14 @@ export const contactContent = {
   eyebrow: 'Schedule a date',
   title: 'Book a coordination meeting with Marou.',
   description:
-    'Contact Marou Madrid directly or request a meeting date through the form. Share your wedding or event details so Marou can prepare the right coordination guidance.',
+    'Request a meeting date through the form below. Share your wedding or event details so Marou can prepare the right coordination guidance.',
   successMessage: "Thank you. Your meeting request is ready for Queen's Banquet Events.",
+};
+
+export const footerContent = {
+  tagline: 'Elegant weddings, refined receptions, and memorable family celebrations.',
+  address: '156 Ligas 1, Bacoor, 4102 Cavite',
+  mapsUrl: 'https://maps.app.goo.gl/z3Qhx3zKZwcXGXMt8',
 };
 
 export const defaultLandingContent = {
@@ -147,4 +153,5 @@ export const defaultLandingContent = {
   testimonials,
   contactChannels,
   contactContent,
+  footerContent,
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarClock, Mail, Phone, Send, UserRound } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { submitInquiry } from '../api/inquiries.js';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import ScrollReveal from './ScrollReveal.jsx';
@@ -16,17 +16,9 @@ const initialFormState = {
   message: '',
 };
 
-const contactIcons = {
-  Owner: UserRound,
-  Viber: Phone,
-  Mobile: Phone,
-  Landline: Phone,
-  Email: Mail,
-};
-
 function Contact() {
   const {
-    content: { contactChannels, contactContent },
+    content: { contactContent },
   } = useLandingContent();
   const [formData, setFormData] = useState(initialFormState);
   const [status, setStatus] = useState('idle');
@@ -56,21 +48,6 @@ function Contact() {
           <SectionHeading eyebrow={contactContent.eyebrow} title={contactContent.title}>
             {contactContent.description}
           </SectionHeading>
-
-          <ul className="contact-list">
-            {contactChannels.map((channel) => (
-              <li key={channel.label}>
-                <span>
-                  {(() => {
-                    const Icon = contactIcons[channel.label] ?? CalendarClock;
-                    return <Icon aria-hidden="true" size={18} strokeWidth={1.6} />;
-                  })()}
-                  {channel.label}
-                </span>
-                {channel.href ? <a href={channel.href}>{channel.value}</a> : <strong>{channel.value}</strong>}
-              </li>
-            ))}
-          </ul>
         </div>
       </ScrollReveal>
 

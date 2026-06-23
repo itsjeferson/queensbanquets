@@ -2,7 +2,6 @@
 .admin-login-page {
   min-height: 100vh;
   max-width: 100%;
-  overflow-x: hidden;
   background:
     radial-gradient(circle at top right, rgba(213, 168, 79, 0.2), transparent 28rem),
     linear-gradient(135deg, #fffdf7, #f8efe0 48%, #fffaf0);
