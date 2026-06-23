@@ -83,8 +83,8 @@ svg {
   justify-content: space-between;
   gap: 1.5rem;
   width: min(1180px, calc(100% - 2rem));
-  margin: 1rem auto 0;
-  padding: 0.85rem;
+  margin: 0.65rem auto 0;
+  padding: 0.65rem 0.85rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 253, 247, 0.9);
@@ -111,8 +111,8 @@ svg {
 }
 
 .brand-logo {
-  width: 3.15rem;
-  height: 3.15rem;
+  width: 2.65rem;
+  height: 2.65rem;
   border: 2px solid var(--gold);
   border-radius: 50%;
   background: var(--black);
@@ -164,11 +164,23 @@ svg {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  gap: clamp(2rem, 5vw, 5rem);
-  align-items: center;
-  min-height: calc(100vh - 5rem);
-  padding: clamp(4rem, 8vw, 7rem) 0;
+  grid-template-columns: minmax(0, 1.12fr) minmax(240px, 0.88fr);
+  gap: clamp(1.25rem, 2.5vw, 2rem);
+  align-items: start;
+  min-height: auto;
+  padding: clamp(1rem, 2vw, 1.75rem) 0 clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.hero h1 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(2rem, 3.6vw, 3.35rem);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+.hero .eyebrow {
+  margin-bottom: 0.45rem;
+  font-size: 0.72rem;
 }
 
 .eyebrow {
@@ -224,21 +236,29 @@ h3 {
 }
 
 .hero-copy {
-  max-width: 650px;
-  font-size: 1.1rem;
+  max-width: 560px;
+  font-size: 0.96rem;
+  line-height: 1.65;
 }
 
-.owner-line {
-  margin-bottom: 0;
+.hero .owner-line {
+  margin: 0.55rem 0 0;
   color: var(--gold);
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin: 2rem 0;
+  gap: 0.75rem;
+  margin: 1.1rem 0 0.9rem;
+}
+
+.hero-actions .button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.92rem;
 }
 
 .button {
@@ -277,8 +297,8 @@ h3 {
 .hero-highlights {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  max-width: 680px;
+  gap: 0.7rem;
+  max-width: 620px;
   margin: 0;
 }
 
@@ -294,26 +314,34 @@ h3 {
 }
 
 .hero-highlights div {
-  padding: 1rem;
-  border-radius: 18px;
+  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+}
+
+.hero-highlights div svg {
+  width: 18px;
+  height: 18px;
 }
 
 .hero-highlights dt {
   color: var(--gold);
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.35rem;
   font-weight: 400;
 }
 
 .hero-highlights dd {
-  margin: 0.25rem 0 0;
+  margin: 0.15rem 0 0;
   color: var(--ivory-muted);
-  font-size: 0.86rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .hero-card {
   position: relative;
-  min-height: 620px;
+  min-height: 0;
+  aspect-ratio: 4 / 5;
+  max-height: min(380px, 52vh);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -325,12 +353,12 @@ h3 {
 
 .hero-logo {
   position: absolute;
-  top: 2.2rem;
+  top: 1.35rem;
   left: 50%;
   z-index: 2;
-  width: min(72%, 360px);
+  width: min(56%, 210px);
   border-radius: 50%;
-  filter: drop-shadow(0 22px 34px rgba(45, 36, 24, 0.22));
+  filter: drop-shadow(0 16px 24px rgba(45, 36, 24, 0.2));
   transform: translateX(-50%);
 }
 
@@ -343,11 +371,11 @@ h3 {
 }
 
 .hero-card::before {
-  inset: 4rem 5rem 8rem;
+  inset: 2.5rem 2.75rem 5rem;
 }
 
 .hero-card::after {
-  inset: 7rem 7.4rem 12rem;
+  inset: 4rem 4.25rem 7.5rem;
 }
 
 .arch {
@@ -375,20 +403,20 @@ h3 {
 .table-setting {
   position: absolute;
   right: 12%;
-  bottom: 7%;
+  bottom: 6%;
   left: 12%;
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  padding: 2.2rem;
-  border-radius: 999px 999px 20px 20px;
+  gap: 0.65rem;
+  padding: 1.2rem;
+  border-radius: 999px 999px 16px 16px;
   background: linear-gradient(135deg, var(--paper), #ead2a1);
 }
 
 .table-setting span {
-  width: 4.3rem;
-  height: 4.3rem;
-  border: 8px double var(--gold);
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 6px double var(--gold);
   border-radius: 50%;
   background: var(--off-white);
 }
@@ -862,13 +890,10 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    min-height: auto;
-  }
-
   .hero-card,
   .split-panel {
-    min-height: 440px;
+    max-height: none;
+    min-height: 320px;
   }
 
   .carousel-shell,
