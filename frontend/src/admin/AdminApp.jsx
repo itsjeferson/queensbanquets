@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react';
 import {
+  clearAdminToken,
+  fetchAdminInquiries,
+  fetchCurrentAdmin,
+  getStoredAdminToken,
+  loginAdmin,
+  storeAdminToken,
+} from '../api/admin.js';
+import { isApiEnabled } from '../api/content.js';
+import { useLandingContent } from '../content/LandingContentContext.jsx';
+import AdminPhotoField from './AdminPhotoField.jsx';
+import './admin.css';
+import {
   BarChart3,
   BriefcaseBusiness,
   Eye,
@@ -18,9 +30,6 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import { useLandingContent } from '../content/LandingContentContext.jsx';
-import AdminPhotoField from './AdminPhotoField.jsx';
-import './admin.css';
 
 const ADMIN_SESSION_KEY = 'queens-banquet-admin-session';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? 'queensbanquet07@gmail.com';
@@ -45,6 +54,42 @@ function AdminApp() {
   const [draft, setDraft] = useState(content);
   const [status, setStatus] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setDraft(content);
+  }, [content]);
+
+  useEffect(() => {
+    if (!isApiEnabled()) {
+      return undefined;
+    }
+
+    const token = getStoredAdminToken();
+
+    if (!token) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    fetchCurrentAdmin(token)
+      .then(() => {
+        if (!cancelled) {
+          window.localStorage.setItem(ADMIN_SESSION_KEY, 'active');
+          setIsAuthenticated(true);
+        }
+      })
+      .catch(() => {
+        clearAdminToken();
+        window.localStorage.removeItem(ADMIN_SESSION_KEY);
+        setIsAuthenticated(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!sidebarOpen) {
@@ -78,6 +123,7 @@ function AdminApp() {
 
   function handleLogout() {
     window.localStorage.removeItem(ADMIN_SESSION_KEY);
+    clearAdminToken();
     setIsAuthenticated(false);
   }
 
@@ -90,15 +136,35 @@ function AdminApp() {
     setStatus('');
   }
 
-  function saveChanges() {
-    setContent(draft);
-    setStatus('Saved. Open landing pages update automatically while npm run dev is running.');
+  async function saveChanges() {
+    setIsSaving(true);
+
+    try {
+      await setContent(draft);
+      setStatus(
+        isApiEnabled() && getStoredAdminToken()
+          ? 'Saved to the database. Open landing pages update automatically while npm run dev is running.'
+          : 'Saved locally. Open landing pages update automatically while npm run dev is running.',
+      );
+    } catch (error) {
+      setStatus(error.message ?? 'Unable to save changes right now.');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function handleReset() {
-    const defaultContent = resetContent();
-    setDraft(defaultContent);
-    setStatus('Local content was reset and open landing pages updated automatically.');
+  async function handleReset() {
+    try {
+      const defaultContent = await resetContent();
+      setDraft(defaultContent);
+      setStatus(
+        isApiEnabled() && getStoredAdminToken()
+          ? 'Content was reset in the database and on open landing pages.'
+          : 'Local content was reset and open landing pages updated automatically.',
+      );
+    } catch (error) {
+      setStatus(error.message ?? 'Unable to reset content right now.');
+    }
   }
 
   if (!isAuthenticated) {
@@ -183,11 +249,11 @@ function AdminApp() {
             </a>
             <button className="admin-secondary-button" type="button" onClick={handleReset}>
               <RotateCcw aria-hidden="true" size={18} strokeWidth={1.6} />
-              Reset Local Content
+              Reset Content
             </button>
-            <button className="admin-primary-button" type="button" onClick={saveChanges}>
+            <button className="admin-primary-button" type="button" onClick={saveChanges} disabled={isSaving}>
               <Save aria-hidden="true" size={18} strokeWidth={1.6} />
-              Save Changes
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </header>
@@ -213,21 +279,37 @@ function AdminApp() {
 function AdminLogin({ onLoginSuccess }) {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
     setCredentials((current) => ({ ...current, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setError('');
+    setIsSubmitting(true);
 
-    if (credentials.email === ADMIN_EMAIL && credentials.password === ADMIN_PASSWORD) {
-      onLoginSuccess();
-      return;
+    try {
+      if (isApiEnabled()) {
+        const result = await loginAdmin(credentials);
+        storeAdminToken(result.token);
+        onLoginSuccess();
+        return;
+      }
+
+      if (credentials.email === ADMIN_EMAIL && credentials.password === ADMIN_PASSWORD) {
+        onLoginSuccess();
+        return;
+      }
+
+      setError('Invalid admin email or password.');
+    } catch (loginError) {
+      setError(loginError.message ?? 'Invalid admin email or password.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setError('Invalid admin email or password.');
   }
 
   return (
@@ -258,24 +340,64 @@ function AdminLogin({ onLoginSuccess }) {
             required
           />
         </label>
-        <button className="admin-primary-button" type="submit">
+        <button className="admin-primary-button" type="submit" disabled={isSubmitting}>
           <LogIn aria-hidden="true" size={18} strokeWidth={1.6} />
-          Login
+          {isSubmitting ? 'Signing in...' : 'Login'}
         </button>
         {error ? <span className="admin-login-error">{error}</span> : null}
-        <small>Temporary local login. Replace with backend authentication before launch.</small>
+        <small>
+          {isApiEnabled()
+            ? 'Sign in with your admin account stored in PostgreSQL.'
+            : 'Temporary local login until the API and database are connected.'}
+        </small>
       </form>
     </main>
   );
 }
 
 function Overview({ content }) {
+  const [inquiryCount, setInquiryCount] = useState(null);
+
+  useEffect(() => {
+    if (!isApiEnabled()) {
+      return undefined;
+    }
+
+    const token = getStoredAdminToken();
+
+    if (!token) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    fetchAdminInquiries(token)
+      .then((inquiries) => {
+        if (!cancelled) {
+          setInquiryCount(inquiries.length);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInquiryCount(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const cards = [
     { label: 'Coordination services', value: content.services.length, icon: BriefcaseBusiness },
     { label: 'Packages', value: content.packages.length, icon: Package },
     { label: 'Testimonials', value: content.testimonials.length, icon: MessageSquareQuote },
     { label: 'Contact channels', value: content.contactChannels.length, icon: BarChart3 },
   ];
+
+  if (inquiryCount !== null) {
+    cards.unshift({ label: 'Meeting requests', value: inquiryCount, icon: FileText });
+  }
 
   return (
     <section className="admin-panel">

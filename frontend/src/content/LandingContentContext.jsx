@@ -1,4 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  fetchLandingContent,
+  isApiEnabled,
+  resetLandingContentRemote,
+  saveLandingContent as saveLandingContentRemote,
+} from '../api/content.js';
+import { getStoredAdminToken } from '../api/admin.js';
 import { defaultLandingContent } from '../data/siteContent.js';
 
 const LANDING_CONTENT_STORAGE_KEY = 'queens-banquet-events-content';
@@ -50,6 +57,7 @@ export function resetLandingContent() {
 
 export function LandingContentProvider({ children }) {
   const [content, setContentState] = useState(loadLandingContent);
+  const [isHydrating, setIsHydrating] = useState(isApiEnabled());
 
   useEffect(() => {
     function syncContent(event) {
@@ -69,12 +77,73 @@ export function LandingContentProvider({ children }) {
     };
   }, []);
 
-  function setContent(nextContent) {
+  useEffect(() => {
+    if (!isApiEnabled()) {
+      setIsHydrating(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function hydrateFromApi() {
+      try {
+        const apiContent = await fetchLandingContent();
+
+        if (!cancelled && apiContent) {
+          const mergedContent = mergeContent(defaultLandingContent, apiContent);
+          setContentState(mergedContent);
+          saveLandingContent(mergedContent);
+        }
+      } catch (error) {
+        console.warn('Using local landing content because the API is unavailable.', error);
+      } finally {
+        if (!cancelled) {
+          setIsHydrating(false);
+        }
+      }
+    }
+
+    hydrateFromApi();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function setContent(nextContent) {
     setContentState(nextContent);
     saveLandingContent(nextContent);
+
+    if (!isApiEnabled()) {
+      return { savedLocally: true };
+    }
+
+    const token = getStoredAdminToken();
+
+    if (!token) {
+      return { savedLocally: true };
+    }
+
+    return saveLandingContentRemote(nextContent, token);
   }
 
-  function resetContent() {
+  async function resetContent() {
+    if (isApiEnabled()) {
+      const token = getStoredAdminToken();
+
+      if (token) {
+        try {
+          const result = await resetLandingContentRemote(token);
+          const nextContent = mergeContent(defaultLandingContent, result.content);
+          setContentState(nextContent);
+          saveLandingContent(nextContent);
+          return nextContent;
+        } catch (error) {
+          console.warn('Unable to reset remote content, falling back to local defaults.', error);
+        }
+      }
+    }
+
     const defaultContent = resetLandingContent();
     setContentState(defaultContent);
     return defaultContent;
@@ -83,10 +152,11 @@ export function LandingContentProvider({ children }) {
   const value = useMemo(
     () => ({
       content,
+      isHydrating,
       setContent,
       resetContent,
     }),
-    [content],
+    [content, isHydrating],
   );
 
   return (

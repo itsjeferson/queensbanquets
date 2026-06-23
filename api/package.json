@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node src/index.js",
+    "dev": "node --watch src/index.js",
     "start": "node src/index.js"
   },
   "dependencies": {
+    "@queens-banquet/backend": "*",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "latest",
     "zod": "latest"
   }

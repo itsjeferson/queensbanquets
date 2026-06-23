@@ -1,3 +1,5 @@
+import { inquiryRepository } from '../repositories/inquiryRepository.js';
+
 export function normalizeInquiry(inquiry) {
   return {
     coupleName: inquiry.name,
@@ -12,10 +14,10 @@ export function normalizeInquiry(inquiry) {
   };
 }
 
-export async function createEventInquiry(inquiry, repository) {
+export async function createEventInquiry(inquiry, pool) {
   const normalizedInquiry = normalizeInquiry(inquiry);
 
-  if (!repository?.saveInquiry) {
+  if (!pool) {
     return {
       id: crypto.randomUUID(),
       status: 'pending_database_integration',
@@ -23,5 +25,13 @@ export async function createEventInquiry(inquiry, repository) {
     };
   }
 
-  return repository.saveInquiry(normalizedInquiry);
+  return inquiryRepository.saveInquiry(pool, normalizedInquiry);
+}
+
+export async function listEventInquiries(pool, limit = 50) {
+  if (!pool) {
+    return [];
+  }
+
+  return inquiryRepository.listInquiries(pool, limit);
 }

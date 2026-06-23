@@ -1,17 +1,53 @@
 # Queen's Banquet Events Database
 
-This directory prepares the data layer for future integration. The SQL is written to be portable for PostgreSQL-oriented deployments.
+PostgreSQL schema, migrations, and seed scripts for the landing page, admin panel, and meeting requests.
 
-## Contents
+## Quick start
 
-- `schema.sql` - current target schema snapshot.
-- `migrations/001_create_inquiries.sql` - starter migration for inquiry capture.
-- `migrations/002_add_meeting_fields_to_inquiries.sql` - meeting request fields for coordination bookings.
-- `seeds/sample_events.sql` - optional sample coordination package records for local development.
+```bash
+cp .env.example .env
+npm install
+npm run db:setup
+```
 
-## Future Tables
+This starts PostgreSQL in Docker, runs migrations, and seeds:
 
-- `event_inquiries` - contact form submissions and meeting requests.
-- `event_packages` - coordination package cards such as Ivory Guidance, Golden Coordination, and Royal Full Coordination.
-- `gallery_items` - image or media records for coordination moments and client proof.
-- `meeting_schedules` - optional consultation availability for booking flows.
+- default landing content
+- admin user (`queensbanquet07@gmail.com` / `marou-admin` by default)
+- sample coordination packages
+
+## Manual commands
+
+```bash
+npm run db:up
+npm run db:migrate
+npm run db:seed
+```
+
+## Tables
+
+| Table | Purpose |
+|---|---|
+| `admin_users` | Admin login accounts |
+| `landing_content` | Published landing/admin content as JSON |
+| `event_inquiries` | Contact and meeting request submissions |
+| `event_packages` | Coordination package records |
+| `schema_migrations` | Applied migration history |
+
+## Files
+
+- `schema.sql` - full PostgreSQL schema snapshot
+- `migrations/` - ordered migration files
+- `scripts/migrate.js` - migration runner
+- `scripts/seed.js` - development seed data
+- `seeds/sample_events.sql` - optional SQL seed reference
+
+## Connection
+
+Default local connection string:
+
+```text
+postgresql://queensbanquet:queensbanquet@localhost:5432/queensbanquet
+```
+
+Set `DATABASE_URL` in `.env` for the API and migration scripts.

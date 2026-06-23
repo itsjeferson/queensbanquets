@@ -10,7 +10,18 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace frontend",
+    "dev:api": "npm run dev --workspace api",
     "build": "npm run build --workspace frontend",
-    "preview": "npm run preview --workspace frontend"
+    "preview": "npm run preview --workspace frontend",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "node database/scripts/migrate.js",
+    "db:seed": "node database/scripts/seed.js",
+    "db:setup": "npm run db:up && sleep 4 && npm run db:migrate && npm run db:seed"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1"
   }
 }
