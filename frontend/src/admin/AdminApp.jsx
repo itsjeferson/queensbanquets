@@ -288,7 +288,7 @@ function ExperienceEditor({ draft, updateDraft }) {
     <section className="admin-panel">
       <EditorHeading
         title="Marou's coordination experience"
-        description="Edit the featured panel quote, photo, and experience cards."
+        description="Edit the featured panel quote, circular portrait photo, and experience cards."
       />
 
       <div className="admin-form-grid">
@@ -303,7 +303,7 @@ function ExperienceEditor({ draft, updateDraft }) {
           }
         />
         <AdminPhotoField
-          label="Featured panel photo"
+          label="Featured panel portrait"
           value={draft.experienceContent?.photoUrl ?? ''}
           onChange={(value) =>
             updateDraft((next) => {

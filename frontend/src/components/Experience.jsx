@@ -17,23 +17,24 @@ function Experience() {
 
   return (
     <section className="section split-section" id="experience">
-      <ScrollReveal
-        as="div"
-        className={`split-panel${showPhoto ? ' split-panel-has-photo' : ''}`}
-        variant="fade-left"
-      >
-        {showPhoto ? (
-          <div className="split-panel-photo">
-            <img
-              src={photoUrl}
-              alt="Marou Madrid coordination experience"
-              onError={() => setPhotoBroken(true)}
-            />
-            <div className="split-panel-overlay" aria-hidden="true" />
+      <ScrollReveal as="div" className="split-panel" variant="fade-left">
+        <div className="split-panel-media">
+          <div className={`split-panel-portrait${showPhoto ? '' : ' split-panel-portrait-empty'}`}>
+            {showPhoto ? (
+              <img
+                src={photoUrl}
+                alt="Marou Madrid coordination experience"
+                onError={() => setPhotoBroken(true)}
+              />
+            ) : (
+              <span className="split-panel-portrait-mark" aria-hidden="true" />
+            )}
           </div>
-        ) : null}
-        <span className="ornament" aria-hidden="true" />
-        <p>{panelQuote}</p>
+        </div>
+
+        <div className="split-panel-core">
+          <p>{panelQuote}</p>
+        </div>
       </ScrollReveal>
 
       <div>
