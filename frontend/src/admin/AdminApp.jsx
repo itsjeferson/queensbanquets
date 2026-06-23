@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut,
+  Menu,
   MessageSquareQuote,
   Package,
   Plus,
@@ -15,6 +16,7 @@ import {
   Settings,
   Trash2,
   UserRound,
+  X,
 } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import AdminPhotoField from './AdminPhotoField.jsx';
@@ -42,6 +44,32 @@ function AdminApp() {
   const [activeSection, setActiveSection] = useState('overview');
   const [draft, setDraft] = useState(content);
   const [status, setStatus] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!sidebarOpen) {
+      return undefined;
+    }
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setSidebarOpen(false);
+      }
+    }
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [sidebarOpen]);
+
+  function selectSection(sectionId) {
+    setActiveSection(sectionId);
+    setSidebarOpen(false);
+  }
 
   function handleLoginSuccess() {
     window.localStorage.setItem(ADMIN_SESSION_KEY, 'active');
@@ -79,13 +107,21 @@ function AdminApp() {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar${sidebarOpen ? ' is-open' : ''}`} id="admin-sidebar">
         <div className="admin-brand">
           <img src={draft.brand.logo} alt="" />
           <div>
             <span>Admin</span>
             <strong>{draft.brand.name}</strong>
           </div>
+          <button
+            className="admin-sidebar-close"
+            type="button"
+            aria-label="Close admin menu"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X aria-hidden="true" size={18} strokeWidth={1.7} />
+          </button>
         </div>
 
         <nav className="admin-nav" aria-label="Admin sections">
@@ -96,7 +132,7 @@ function AdminApp() {
                 className={activeSection === item.id ? 'active' : ''}
                 key={item.id}
                 type="button"
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => selectSection(item.id)}
               >
                 <Icon aria-hidden="true" size={18} strokeWidth={1.6} />
                 {item.label}
@@ -111,7 +147,30 @@ function AdminApp() {
         </button>
       </aside>
 
+      {sidebarOpen ? (
+        <button
+          className="admin-sidebar-backdrop"
+          type="button"
+          aria-label="Close admin menu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
       <main className="admin-main">
+        <div className="admin-mobile-bar">
+          <button
+            className="admin-menu-toggle"
+            type="button"
+            aria-expanded={sidebarOpen}
+            aria-controls="admin-sidebar"
+            aria-label={sidebarOpen ? 'Close admin menu' : 'Open admin menu'}
+            onClick={() => setSidebarOpen((current) => !current)}
+          >
+            <Menu aria-hidden="true" size={20} strokeWidth={1.7} />
+          </button>
+          <strong>{draft.brand.name}</strong>
+        </div>
+
         <header className="admin-topbar">
           <div>
             <p>Hidden admin page</p>
