@@ -71,3 +71,23 @@ export async function fetchAdminInquiries(token) {
   const data = await response.json();
   return data.inquiries ?? [];
 }
+
+export async function updateAdminInquiryStatus(id, status, token) {
+  if (!API_BASE_URL || !token) {
+    throw new Error('Connect the API to manage inquiries.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/admin/inquiries/${id}/status`, {
+    method: 'PATCH',
+    headers: buildHeaders(token),
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unable to update inquiry status.' }));
+    throw new Error(error.message ?? 'Unable to update inquiry status.');
+  }
+
+  const data = await response.json();
+  return data.inquiry;
+}

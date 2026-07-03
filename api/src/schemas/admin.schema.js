@@ -4,3 +4,7 @@ export const adminLoginSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(4),
 });
+
+export const inquiryStatusSchema = z.object({
+  status: z.enum(['new', 'contacted', 'confirmed', 'archived']),
+});

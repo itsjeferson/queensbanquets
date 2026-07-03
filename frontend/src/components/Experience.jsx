@@ -16,44 +16,46 @@ function Experience() {
   const showPhoto = Boolean(photoUrl) && !photoBroken;
 
   return (
-    <section className="section split-section" id="experience">
-      <ScrollReveal as="div" className="split-panel" variant="fade-left">
-        <div className="split-panel-media">
-          <div className={`split-panel-portrait${showPhoto ? '' : ' split-panel-portrait-empty'}`}>
-            {showPhoto ? (
-              <img
-                src={photoUrl}
-                alt="Marou Madrid coordination experience"
-                onError={() => setPhotoBroken(true)}
-              />
-            ) : (
-              <span className="split-panel-portrait-mark" aria-hidden="true" />
-            )}
+    <section className="section" id="experience">
+      <div className="section-inner split-section">
+        <ScrollReveal as="div" className="split-panel theme-dark" variant="fade-left">
+          <div className="split-panel-media">
+            <div className={`split-panel-portrait${showPhoto ? '' : ' split-panel-portrait-empty'}`}>
+              {showPhoto ? (
+                <img
+                  src={photoUrl}
+                  alt="Marou Madrid coordination experience"
+                  onError={() => setPhotoBroken(true)}
+                />
+              ) : (
+                <span className="split-panel-portrait-mark" aria-hidden="true" />
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="split-panel-core">
-          <p>{panelQuote}</p>
-        </div>
-      </ScrollReveal>
+          <div className="split-panel-core">
+            <p>{panelQuote}</p>
+          </div>
+        </ScrollReveal>
 
-      <div>
-        <SectionHeading
-          eyebrow="Marou's coordination experience"
-          title="Experienced guidance before and during your event."
-        >
-          Queen's Banquet Events focuses on coordination, not owning the entire
-          event. Marou helps bring your plans, suppliers, program, and family
-          movement together with clarity.
-        </SectionHeading>
+        <div>
+          <SectionHeading
+            eyebrow="Marou's coordination experience"
+            title="Experienced guidance before and during your event."
+          >
+            Queen's Banquet Events focuses on coordination, not owning the entire
+            event. Marou helps bring your plans, suppliers, program, and family
+            movement together with clarity.
+          </SectionHeading>
 
-        <div className="experience-grid">
-          {experiencePoints.map((point, index) => (
-            <ScrollReveal as="article" delay={index * 120} key={point.title} variant="fade-up">
-              <h3>{point.title}</h3>
-              <p>{point.description}</p>
-            </ScrollReveal>
-          ))}
+          <div className="experience-grid">
+            {experiencePoints.map((point, index) => (
+              <ScrollReveal as="article" delay={index * 120} key={point.title} variant="fade-up">
+                <h3>{point.title}</h3>
+                <p>{point.description}</p>
+              </ScrollReveal>
+            ))}
+          </div>
         </div>
       </div>
     </section>

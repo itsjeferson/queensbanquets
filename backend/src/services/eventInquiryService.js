@@ -35,3 +35,11 @@ export async function listEventInquiries(pool, limit = 50) {
 
   return inquiryRepository.listInquiries(pool, limit);
 }
+
+export async function updateEventInquiryStatus(pool, id, status) {
+  if (!pool) {
+    return null;
+  }
+
+  return inquiryRepository.updateInquiryStatus(pool, id, status);
+}

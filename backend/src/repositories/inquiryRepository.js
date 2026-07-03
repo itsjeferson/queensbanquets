@@ -69,7 +69,34 @@ export async function listInquiries(pool, limit = 50) {
   return result.rows;
 }
 
+export async function updateInquiryStatus(pool, id, status) {
+  const result = await pool.query(
+    `
+      UPDATE event_inquiries
+      SET status = $2, updated_at = NOW()
+      WHERE id = $1
+      RETURNING
+        id,
+        couple_name AS "coupleName",
+        email,
+        phone,
+        preferred_meeting_date AS "preferredMeetingDate",
+        event_date AS "eventDate",
+        coordination_need AS "coordinationNeed",
+        estimated_guests AS "estimatedGuests",
+        notes,
+        status,
+        source,
+        created_at AS "createdAt"
+    `,
+    [id, status],
+  );
+
+  return result.rows[0] ?? null;
+}
+
 export const inquiryRepository = {
   saveInquiry,
   listInquiries,
+  updateInquiryStatus,
 };

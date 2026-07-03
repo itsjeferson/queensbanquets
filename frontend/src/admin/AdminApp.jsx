@@ -10,12 +10,17 @@ import {
 import { isApiEnabled } from '../api/content.js';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
 import AdminPhotoField from './AdminPhotoField.jsx';
+import AdminToastStack from './AdminToast.jsx';
+import ConfirmDialog from './ConfirmDialog.jsx';
+import InquiriesPanel from './InquiriesPanel.jsx';
+import { formatRelativeDate, getStatusMeta } from './inquiryStatus.js';
 import './admin.css';
 import {
   BarChart3,
   BriefcaseBusiness,
   Eye,
   FileText,
+  Inbox,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -26,6 +31,7 @@ import {
   RotateCcw,
   Save,
   Settings,
+  Star,
   Trash2,
   UserRound,
   X,
@@ -37,6 +43,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? 'marou-admin';
 
 const sidebarItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'inquiries', label: 'Booking Inquiries', icon: Inbox },
   { id: 'brand', label: 'Brand & Hero', icon: Settings },
   { id: 'experience', label: "Marou's Experience", icon: FileText },
   { id: 'contact', label: 'Contact Details', icon: UserRound },
@@ -52,9 +59,24 @@ function AdminApp() {
   );
   const [activeSection, setActiveSection] = useState('overview');
   const [draft, setDraft] = useState(content);
-  const [status, setStatus] = useState('');
+  const [toasts, setToasts] = useState([]);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  function pushToast(type, message) {
+    const id = crypto.randomUUID();
+    setToasts((current) => [...current, { id, type, message }]);
+    window.setTimeout(() => dismissToast(id), 5000);
+  }
+
+  function dismissToast(id) {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }
+
+  function requestConfirm(dialog) {
+    setConfirmDialog(dialog);
+  }
 
   useEffect(() => {
     setDraft(content);
@@ -133,7 +155,6 @@ function AdminApp() {
       updater(nextDraft);
       return nextDraft;
     });
-    setStatus('');
   }
 
   async function saveChanges() {
@@ -141,44 +162,59 @@ function AdminApp() {
 
     try {
       await setContent(draft);
-      setStatus(
+      pushToast(
+        'success',
         isApiEnabled() && getStoredAdminToken()
           ? 'Saved to the database. Open landing pages update automatically while npm run dev is running.'
           : 'Saved locally. Open landing pages update automatically while npm run dev is running.',
       );
     } catch (error) {
-      setStatus(error.message ?? 'Unable to save changes right now.');
+      pushToast('error', error.message ?? 'Unable to save changes right now.');
     } finally {
       setIsSaving(false);
     }
   }
 
   async function handleReset() {
-    try {
-      const defaultContent = await resetContent();
-      setDraft(defaultContent);
-      setStatus(
-        isApiEnabled() && getStoredAdminToken()
-          ? 'Content was reset in the database and on open landing pages.'
-          : 'Local content was reset and open landing pages updated automatically.',
-      );
-    } catch (error) {
-      setStatus(error.message ?? 'Unable to reset content right now.');
-    }
+    requestConfirm({
+      title: 'Reset all content?',
+      message: 'This restores every landing page section to its default text and images. This cannot be undone.',
+      confirmLabel: 'Reset content',
+      onConfirm: async () => {
+        try {
+          const defaultContent = await resetContent();
+          setDraft(defaultContent);
+          pushToast(
+            'success',
+            isApiEnabled() && getStoredAdminToken()
+              ? 'Content was reset in the database and on open landing pages.'
+              : 'Local content was reset and open landing pages updated automatically.',
+          );
+        } catch (error) {
+          pushToast('error', error.message ?? 'Unable to reset content right now.');
+        }
+      },
+    });
   }
 
   if (!isAuthenticated) {
-    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
+    return <AdminLogin onLoginSuccess={handleLoginSuccess} brand={content.brand} />;
   }
 
+  const activeItem = sidebarItems.find((item) => item.id === activeSection);
+
   return (
+    <>
     <div className="admin-shell">
-      <aside className={`admin-sidebar${sidebarOpen ? ' is-open' : ''}`} id="admin-sidebar">
+      <aside className={`admin-sidebar theme-dark${sidebarOpen ? ' is-open' : ''}`} id="admin-sidebar">
         <div className="admin-brand">
           <img src={draft.brand.logo} alt="" />
           <div>
-            <span>Admin</span>
-            <strong>{draft.brand.name}</strong>
+            <strong>{draft.brand.owner}</strong>
+            <span className="admin-role-badge">
+              <Star aria-hidden="true" size={12} strokeWidth={0} fill="currentColor" />
+              Super Admin
+            </span>
           </div>
           <button
             className="admin-sidebar-close"
@@ -200,7 +236,7 @@ function AdminApp() {
                 type="button"
                 onClick={() => selectSection(item.id)}
               >
-                <Icon aria-hidden="true" size={18} strokeWidth={1.6} />
+                <Icon aria-hidden="true" size={16} strokeWidth={1.6} />
                 {item.label}
               </button>
             );
@@ -239,7 +275,11 @@ function AdminApp() {
 
         <header className="admin-topbar">
           <div>
-            <p>Hidden admin page</p>
+            <p className="admin-breadcrumb">
+              <span>Admin</span>
+              <span>/</span>
+              <span>{activeItem?.label ?? 'Dashboard'}</span>
+            </p>
             <h1>Landing Page Manager</h1>
           </div>
           <div className="admin-actions">
@@ -258,25 +298,33 @@ function AdminApp() {
           </div>
         </header>
 
-        {status ? <p className="admin-status">{status}</p> : null}
-
         {activeSection === 'overview' ? <Overview content={draft} /> : null}
+        {activeSection === 'inquiries' ? <InquiriesPanel pushToast={pushToast} /> : null}
         {activeSection === 'brand' ? <BrandHeroEditor draft={draft} updateDraft={updateDraft} /> : null}
         {activeSection === 'experience' ? (
-          <ExperienceEditor draft={draft} updateDraft={updateDraft} />
+          <ExperienceEditor draft={draft} updateDraft={updateDraft} requestConfirm={requestConfirm} />
         ) : null}
-        {activeSection === 'contact' ? <ContactEditor draft={draft} updateDraft={updateDraft} /> : null}
-        {activeSection === 'services' ? <ServicesEditor draft={draft} updateDraft={updateDraft} /> : null}
-        {activeSection === 'packages' ? <PackagesEditor draft={draft} updateDraft={updateDraft} /> : null}
+        {activeSection === 'contact' ? (
+          <ContactEditor draft={draft} updateDraft={updateDraft} requestConfirm={requestConfirm} />
+        ) : null}
+        {activeSection === 'services' ? (
+          <ServicesEditor draft={draft} updateDraft={updateDraft} requestConfirm={requestConfirm} />
+        ) : null}
+        {activeSection === 'packages' ? (
+          <PackagesEditor draft={draft} updateDraft={updateDraft} requestConfirm={requestConfirm} />
+        ) : null}
         {activeSection === 'testimonials' ? (
-          <TestimonialsEditor draft={draft} updateDraft={updateDraft} />
+          <TestimonialsEditor draft={draft} updateDraft={updateDraft} requestConfirm={requestConfirm} />
         ) : null}
       </main>
     </div>
+    <AdminToastStack toasts={toasts} onDismiss={dismissToast} />
+    <ConfirmDialog dialog={confirmDialog} onCancel={() => setConfirmDialog(null)} />
+    </>
   );
 }
 
-function AdminLogin({ onLoginSuccess }) {
+function AdminLogin({ onLoginSuccess, brand }) {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -314,10 +362,19 @@ function AdminLogin({ onLoginSuccess }) {
 
   return (
     <main className="admin-login-page">
-      <form className="admin-login-card" onSubmit={handleSubmit}>
-        <img src="/queens-banquet-logo.svg" alt="Queen's Banquet Events" />
+      <section className="admin-login-brand theme-dark">
+        <img src={brand?.logo ?? '/queens-banquet-logo.svg'} alt="" />
         <p>Queen's Banquet Events</p>
-        <h1>Admin Login</h1>
+        <h1>Admin Dashboard</h1>
+        <span>
+          Manage your landing page content and booking inquiries in one calm,
+          organized place.
+        </span>
+      </section>
+
+      <form className="admin-login-card" onSubmit={handleSubmit}>
+        <p>Restricted access</p>
+        <h1>Sign in</h1>
         <label>
           Admin email
           <input
@@ -356,7 +413,7 @@ function AdminLogin({ onLoginSuccess }) {
 }
 
 function Overview({ content }) {
-  const [inquiryCount, setInquiryCount] = useState(null);
+  const [inquiries, setInquiries] = useState(null);
 
   useEffect(() => {
     if (!isApiEnabled()) {
@@ -372,14 +429,14 @@ function Overview({ content }) {
     let cancelled = false;
 
     fetchAdminInquiries(token)
-      .then((inquiries) => {
+      .then((data) => {
         if (!cancelled) {
-          setInquiryCount(inquiries.length);
+          setInquiries(data);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setInquiryCount(null);
+          setInquiries(null);
         }
       });
 
@@ -395,9 +452,11 @@ function Overview({ content }) {
     { label: 'Contact channels', value: content.contactChannels.length, icon: BarChart3 },
   ];
 
-  if (inquiryCount !== null) {
-    cards.unshift({ label: 'Meeting requests', value: inquiryCount, icon: FileText });
+  if (inquiries !== null) {
+    cards.unshift({ label: 'Meeting requests', value: inquiries.length, icon: FileText });
   }
+
+  const recentInquiries = (inquiries ?? []).slice(0, 5);
 
   return (
     <section className="admin-panel">
@@ -410,13 +469,51 @@ function Overview({ content }) {
           const Icon = card.icon;
           return (
             <article key={card.label}>
-              <Icon aria-hidden="true" size={23} strokeWidth={1.6} />
+              <span className="admin-stat-icon">
+                <Icon aria-hidden="true" size={20} strokeWidth={1.7} />
+              </span>
               <strong>{card.value}</strong>
               <span>{card.label}</span>
             </article>
           );
         })}
       </div>
+
+      <div className="admin-section-heading">
+        <p>Latest activity</p>
+        <h2 style={{ fontSize: '1.4rem' }}>Recent booking inquiries</h2>
+      </div>
+
+      {inquiries === null ? (
+        <div className="admin-empty-state">
+          <strong>No live inquiries feed yet</strong>
+          <span>Connect the API and sign in to see booking requests as they arrive.</span>
+        </div>
+      ) : recentInquiries.length === 0 ? (
+        <div className="admin-empty-state">
+          <strong>No inquiries yet</strong>
+          <span>New meeting requests submitted from the landing page will appear here.</span>
+        </div>
+      ) : (
+        <div className="admin-preview-list">
+          {recentInquiries.map((inquiry) => {
+            const meta = getStatusMeta(inquiry.status);
+            return (
+              <div className="admin-preview-row" key={inquiry.id}>
+                <div>
+                  <strong>{inquiry.coupleName}</strong>
+                  <small>
+                    {inquiry.coordinationNeed || 'Coordination inquiry'} &middot;{' '}
+                    {formatRelativeDate(inquiry.createdAt)}
+                  </small>
+                </div>
+                <span className={`status-badge ${meta.className}`}>{meta.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="admin-note">
         <h3>Admin access</h3>
         <p>
@@ -432,7 +529,11 @@ function Overview({ content }) {
 function BrandHeroEditor({ draft, updateDraft }) {
   return (
     <section className="admin-panel">
-      <EditorHeading title="Brand & hero" description="Update the main business details and first section." />
+      <EditorHeading
+        title="Brand & hero"
+        description="Update the main business details and first section."
+        icon={Settings}
+      />
       <div className="admin-form-grid">
         <AdminField
           label="Business name"
@@ -464,7 +565,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
   );
 }
 
-function ExperienceEditor({ draft, updateDraft }) {
+function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <section className="admin-panel">
       <EditorHeading
@@ -500,6 +601,8 @@ function ExperienceEditor({ draft, updateDraft }) {
         fields={['title', 'description']}
         updateDraft={updateDraft}
         path="experiencePoints"
+        itemLabel="experience highlight"
+        requestConfirm={requestConfirm}
         createItem={() => ({
           title: 'New experience highlight',
           description: 'Describe this coordination strength.',
@@ -509,10 +612,14 @@ function ExperienceEditor({ draft, updateDraft }) {
   );
 }
 
-function ContactEditor({ draft, updateDraft }) {
+function ContactEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <section className="admin-panel">
-      <EditorHeading title="Contact details" description="Edit direct contact channels and booking copy." />
+      <EditorHeading
+        title="Contact details"
+        description="Edit direct contact channels and booking copy."
+        icon={UserRound}
+      />
       <div className="admin-form-grid">
         <AdminField
           label="Booking eyebrow"
@@ -552,9 +659,14 @@ function ContactEditor({ draft, updateDraft }) {
             <button
               className="admin-danger-button"
               type="button"
-              onClick={() => updateDraft((next) => { next.contactChannels.splice(index, 1); })}
+              onClick={() =>
+                requestConfirm({
+                  message: `Remove the "${channel.label || 'contact'}" contact channel? This cannot be undone.`,
+                  onConfirm: () => updateDraft((next) => { next.contactChannels.splice(index, 1); }),
+                })
+              }
             >
-              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
+              <Trash2 aria-hidden="true" size={15} strokeWidth={1.6} />
               Remove contact
             </button>
           </div>
@@ -576,25 +688,31 @@ function ContactEditor({ draft, updateDraft }) {
   );
 }
 
-function ServicesEditor({ draft, updateDraft }) {
+function ServicesEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <section className="admin-panel">
-      <EditorHeading title="Coordination services" description="Edit the service cards shown on the page." />
+      <EditorHeading
+        title="Coordination services"
+        description="Edit the service cards shown on the page."
+        icon={BriefcaseBusiness}
+      />
       <EditableCards
         items={draft.services}
         fields={['title', 'description']}
         updateDraft={updateDraft}
         path="services"
+        itemLabel="service"
+        requestConfirm={requestConfirm}
         createItem={() => ({ title: 'New coordination service', description: 'Describe this service.' })}
       />
     </section>
   );
 }
 
-function PackagesEditor({ draft, updateDraft }) {
+function PackagesEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <section className="admin-panel">
-      <EditorHeading title="Packages" description="Edit package names, tiers, and feature lists." />
+      <EditorHeading title="Packages" description="Edit package names, tiers, and feature lists." icon={Package} />
       <div className="admin-list-editor">
         {draft.packages.map((item, index) => (
           <div className="admin-inline-card" key={`${item.name}-${index}`}>
@@ -620,9 +738,14 @@ function PackagesEditor({ draft, updateDraft }) {
             <button
               className="admin-danger-button"
               type="button"
-              onClick={() => updateDraft((next) => { next.packages.splice(index, 1); })}
+              onClick={() =>
+                requestConfirm({
+                  message: `Remove the "${item.name || 'package'}" package? This cannot be undone.`,
+                  onConfirm: () => updateDraft((next) => { next.packages.splice(index, 1); }),
+                })
+              }
             >
-              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
+              <Trash2 aria-hidden="true" size={15} strokeWidth={1.6} />
               Remove package
             </button>
           </div>
@@ -648,12 +771,13 @@ function PackagesEditor({ draft, updateDraft }) {
   );
 }
 
-function TestimonialsEditor({ draft, updateDraft }) {
+function TestimonialsEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <section className="admin-panel">
       <EditorHeading
         title="Testimonials"
         description="Edit client quotes, labels, and photos using an online URL or uploaded image."
+        icon={MessageSquareQuote}
       />
 
       <div className="admin-list-editor">
@@ -682,9 +806,14 @@ function TestimonialsEditor({ draft, updateDraft }) {
             <button
               className="admin-danger-button"
               type="button"
-              onClick={() => updateDraft((next) => { next.testimonials.splice(index, 1); })}
+              onClick={() =>
+                requestConfirm({
+                  message: `Remove the testimonial from "${testimonial.author || 'this client'}"? This cannot be undone.`,
+                  onConfirm: () => updateDraft((next) => { next.testimonials.splice(index, 1); }),
+                })
+              }
             >
-              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
+              <Trash2 aria-hidden="true" size={15} strokeWidth={1.6} />
               Remove testimonial
             </button>
           </div>
@@ -712,7 +841,16 @@ function TestimonialsEditor({ draft, updateDraft }) {
   );
 }
 
-function EditableCards({ items, fields, updateDraft, path, textareaFields = ['description'], createItem }) {
+function EditableCards({
+  items,
+  fields,
+  updateDraft,
+  path,
+  textareaFields = ['description'],
+  createItem,
+  requestConfirm,
+  itemLabel = 'item',
+}) {
   return (
     <>
       <div className="admin-list-editor">
@@ -732,9 +870,14 @@ function EditableCards({ items, fields, updateDraft, path, textareaFields = ['de
             <button
               className="admin-danger-button"
               type="button"
-              onClick={() => updateDraft((next) => { next[path].splice(index, 1); })}
+              onClick={() =>
+                requestConfirm({
+                  message: `Remove this ${itemLabel}? This cannot be undone.`,
+                  onConfirm: () => updateDraft((next) => { next[path].splice(index, 1); }),
+                })
+              }
             >
-              <Trash2 aria-hidden="true" size={17} strokeWidth={1.6} />
+              <Trash2 aria-hidden="true" size={15} strokeWidth={1.6} />
               Remove item
             </button>
           </div>
@@ -754,12 +897,12 @@ function EditableCards({ items, fields, updateDraft, path, textareaFields = ['de
   );
 }
 
-function EditorHeading({ title, description }) {
+function EditorHeading({ title, description, icon: Icon = FileText }) {
   return (
     <div className="admin-section-heading">
       <p>Content editor</p>
       <h2>
-        <FileText aria-hidden="true" size={26} strokeWidth={1.5} />
+        <Icon aria-hidden="true" size={26} strokeWidth={1.5} />
         {title}
       </h2>
       <span>{description}</span>

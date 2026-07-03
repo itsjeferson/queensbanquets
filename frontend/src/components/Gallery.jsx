@@ -25,44 +25,46 @@ function Gallery() {
   }
 
   return (
-    <section className="section gallery-section" id="gallery">
-      <SectionHeading eyebrow="Coordination moments" title="The quiet details that make events feel effortless.">
-        From supplier briefing to ceremony cues, coordination keeps each moment
-        clear while the couple and guests enjoy the celebration.
-      </SectionHeading>
+    <section className="section section-dark gallery-section" id="gallery">
+      <div className="section-inner">
+        <SectionHeading eyebrow="Coordination moments" title="The quiet details that make events feel effortless.">
+          From supplier briefing to ceremony cues, coordination keeps each moment
+          clear while the couple and guests enjoy the celebration.
+        </SectionHeading>
 
-      <ScrollReveal variant="fade-up">
-        <div className="carousel-shell gallery-carousel" aria-live="polite">
-          <button className="carousel-button" type="button" onClick={goToPrevious} aria-label="Previous moment">
-            <ChevronLeft aria-hidden="true" size={22} strokeWidth={1.6} />
-          </button>
+        <ScrollReveal variant="fade-up">
+          <div className="carousel-shell gallery-carousel" aria-live="polite">
+            <button className="carousel-button" type="button" onClick={goToPrevious} aria-label="Previous moment">
+              <ChevronLeft aria-hidden="true" size={22} strokeWidth={1.6} />
+            </button>
 
-          <article className="gallery-card gallery-card-active">
-            <Sparkles aria-hidden="true" size={28} strokeWidth={1.5} />
-            <span>{activeMoment}</span>
-            <p>
-              {activeMoment} is prepared with clear timing, supplier communication,
-              and calm guidance from Queen&apos;s Banquet Events.
-            </p>
-          </article>
+            <article className="gallery-card gallery-card-active" key={activeIndex}>
+              <Sparkles aria-hidden="true" size={28} strokeWidth={1.5} />
+              <span>{activeMoment}</span>
+              <p>
+                {activeMoment} is prepared with clear timing, supplier communication,
+                and calm guidance from Queen&apos;s Banquet Events.
+              </p>
+            </article>
 
-          <button className="carousel-button" type="button" onClick={goToNext} aria-label="Next moment">
-            <ChevronRight aria-hidden="true" size={22} strokeWidth={1.6} />
-          </button>
-        </div>
+            <button className="carousel-button" type="button" onClick={goToNext} aria-label="Next moment">
+              <ChevronRight aria-hidden="true" size={22} strokeWidth={1.6} />
+            </button>
+          </div>
 
-        <div className="carousel-dots" aria-label="Choose coordination moment">
-          {galleryMoments.map((moment, index) => (
-            <button
-              className={index === activeIndex ? 'active' : ''}
-              key={moment}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              aria-label={`Show ${moment}`}
-            />
-          ))}
-        </div>
-      </ScrollReveal>
+          <div className="carousel-dots" aria-label="Choose coordination moment">
+            {galleryMoments.map((moment, index) => (
+              <button
+                className={index === activeIndex ? 'active' : ''}
+                key={moment}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                aria-label={`Show ${moment}`}
+              />
+            ))}
+          </div>
+        </ScrollReveal>
+      </div>
     </section>
   );
 }

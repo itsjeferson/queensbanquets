@@ -35,58 +35,60 @@ function Testimonials() {
   }
 
   return (
-    <section className="section testimonials-section" id="testimonials">
-      <SectionHeading eyebrow="Client testimonials" title="Words from couples and families.">
-        A coordination service is trusted in the small details: timing,
-        communication, supplier alignment, and calm guidance on the day itself.
-      </SectionHeading>
+    <section className="section section-alt testimonials-section" id="testimonials">
+      <div className="section-inner">
+        <SectionHeading eyebrow="Client testimonials" title="Words from couples and families.">
+          A coordination service is trusted in the small details: timing,
+          communication, supplier alignment, and calm guidance on the day itself.
+        </SectionHeading>
 
-      <ScrollReveal variant="fade-up">
-        <div className="carousel-shell testimonial-carousel" aria-live="polite">
-          <button className="carousel-button" type="button" onClick={goToPrevious} aria-label="Previous testimonial">
-            <ChevronLeft aria-hidden="true" size={22} strokeWidth={1.6} />
-          </button>
+        <ScrollReveal variant="fade-up">
+          <div className="carousel-shell testimonial-carousel" aria-live="polite">
+            <button className="carousel-button" type="button" onClick={goToPrevious} aria-label="Previous testimonial">
+              <ChevronLeft aria-hidden="true" size={22} strokeWidth={1.6} />
+            </button>
 
-          <article className="testimonial-card testimonial-card-active">
-            <div className="testimonial-photo">
-              {activeTestimonial.photoUrl && !brokenPhotos[activeIndex] ? (
-                <img
-                  src={activeTestimonial.photoUrl}
-                  alt={`${activeTestimonial.author} testimonial`}
-                  onError={() => setBrokenPhotos((current) => ({ ...current, [activeIndex]: true }))}
-                />
-              ) : (
-                <span>{getInitials(activeTestimonial.author)}</span>
-              )}
-            </div>
-
-            <div className="testimonial-copy">
-              <Quote aria-hidden="true" size={24} strokeWidth={1.5} />
-              <p>&ldquo;{activeTestimonial.quote}&rdquo;</p>
-              <div>
-                <strong>{activeTestimonial.author}</strong>
-                <span>{activeTestimonial.event}</span>
+            <article className="testimonial-card testimonial-card-active" key={activeIndex}>
+              <div className="testimonial-photo">
+                {activeTestimonial.photoUrl && !brokenPhotos[activeIndex] ? (
+                  <img
+                    src={activeTestimonial.photoUrl}
+                    alt={`${activeTestimonial.author} testimonial`}
+                    onError={() => setBrokenPhotos((current) => ({ ...current, [activeIndex]: true }))}
+                  />
+                ) : (
+                  <span>{getInitials(activeTestimonial.author)}</span>
+                )}
               </div>
-            </div>
-          </article>
 
-          <button className="carousel-button" type="button" onClick={goToNext} aria-label="Next testimonial">
-            <ChevronRight aria-hidden="true" size={22} strokeWidth={1.6} />
-          </button>
-        </div>
+              <div className="testimonial-copy">
+                <Quote aria-hidden="true" size={24} strokeWidth={1.5} />
+                <p>&ldquo;{activeTestimonial.quote}&rdquo;</p>
+                <div>
+                  <strong>{activeTestimonial.author}</strong>
+                  <span>{activeTestimonial.event}</span>
+                </div>
+              </div>
+            </article>
 
-        <div className="carousel-dots" aria-label="Choose testimonial">
-          {testimonials.map((testimonial, index) => (
-            <button
-              className={index === activeIndex ? 'active' : ''}
-              key={`${testimonial.author}-${testimonial.event}`}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              aria-label={`Show testimonial ${index + 1}`}
-            />
-          ))}
-        </div>
-      </ScrollReveal>
+            <button className="carousel-button" type="button" onClick={goToNext} aria-label="Next testimonial">
+              <ChevronRight aria-hidden="true" size={22} strokeWidth={1.6} />
+            </button>
+          </div>
+
+          <div className="carousel-dots" aria-label="Choose testimonial">
+            {testimonials.map((testimonial, index) => (
+              <button
+                className={index === activeIndex ? 'active' : ''}
+                key={`${testimonial.author}-${testimonial.event}`}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                aria-label={`Show testimonial ${index + 1}`}
+              />
+            ))}
+          </div>
+        </ScrollReveal>
+      </div>
     </section>
   );
 }
