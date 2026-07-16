@@ -5,6 +5,7 @@ export { contentRepository } from './repositories/contentRepository.js';
 export { adminRepository } from './repositories/adminRepository.js';
 export {
   authenticateAdmin,
+  changeAdminPassword,
   getAdminProfile,
   signAdminToken,
   verifyAdminToken,

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import {
+  changeAdminPassword,
   clearAdminToken,
   fetchAdminAnalytics,
   fetchAdminInquiries,
@@ -300,10 +301,10 @@ function AdminApp() {
         visible={bootLoading || authLoading}
         label={authLoading ? authLoadingLabel : 'Opening dashboard'}
       />
-      {/* Mobile top navigation bar */}
-      <div className="md:hidden h-14 bg-background border-b border-outline-variant flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
+      {/* Mobile top navigation bar — single row */}
+      <div className="md:hidden h-14 bg-background border-b border-outline-variant flex items-center justify-between gap-2 px-3 sm:px-4 sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
         <button
-          className="text-on-surface hover:text-primary p-2 flex items-center"
+          className="text-on-surface hover:text-primary p-2 flex items-center shrink-0"
           type="button"
           aria-expanded={sidebarOpen}
           aria-controls="admin-sidebar"
@@ -312,8 +313,20 @@ function AdminApp() {
         >
           <span className="material-symbols-outlined">menu</span>
         </button>
-        <strong className="text-on-surface tracking-tight font-headline-md text-sm sm:text-base truncate px-2">Queen's Banquet</strong>
-        <ThemeToggle compact />
+        <strong className="text-on-surface tracking-tight font-headline-md text-sm sm:text-base truncate min-w-0 flex-1 text-center px-1">
+          Queen&apos;s Banquet
+        </strong>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            className="relative text-on-surface-variant hover:text-primary transition-colors flex items-center p-2"
+            type="button"
+            aria-label="Notifications"
+          >
+            <span className="material-symbols-outlined text-[22px]">notifications</span>
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+          </button>
+          <ThemeToggle compact />
+        </div>
       </div>
 
       <div className="admin-shell min-h-dvh bg-background text-on-surface flex overflow-x-clip">
@@ -414,10 +427,10 @@ function AdminApp() {
 
         {/* Main Work Area Container */}
         <div className="flex-1 md:ml-sidebar-width min-h-dvh flex flex-col min-w-0 w-full">
-          {/* TopNavBar */}
-          <header className="min-h-14 sm:h-16 bg-background border-b border-outline-variant flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-container-padding sticky top-0 z-30">
+          {/* Desktop TopNavBar — hidden on mobile (mobile uses the sticky bar above) */}
+          <header className="hidden md:flex h-16 bg-background border-b border-outline-variant items-center justify-between gap-3 px-6 lg:px-container-padding sticky top-0 z-30">
             <div className="flex items-center flex-1 min-w-0 max-w-md">
-              <div className="relative w-full hidden sm:block">
+              <div className="relative w-full">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
                 <input
                   className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 text-sm py-2 pl-10 transition-all placeholder:text-on-surface-variant/50 text-on-surface"
@@ -426,17 +439,17 @@ function AdminApp() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 shrink-0">
-              <ThemeToggle compact className="hidden md:inline-flex" />
+            <div className="flex items-center gap-4 lg:gap-6 shrink-0">
+              <ThemeToggle compact />
               <button className="relative text-on-surface-variant hover:text-primary transition-colors flex items-center" type="button" aria-label="Notifications">
                 <span className="material-symbols-outlined">notifications</span>
-                <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
+                <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full" />
               </button>
-              <button className="hidden sm:flex text-on-surface-variant hover:text-primary transition-colors items-center" type="button" aria-label="Help">
+              <button className="text-on-surface-variant hover:text-primary transition-colors flex items-center" type="button" aria-label="Help">
                 <span className="material-symbols-outlined">help</span>
               </button>
-              <div className="hidden md:block h-8 w-[1px] bg-outline-variant"></div>
-              <div className="hidden md:flex items-center gap-3 cursor-pointer group">
+              <div className="h-8 w-px bg-outline-variant" />
+              <div className="flex items-center gap-3 cursor-pointer group">
                 <span className="font-title-sm text-title-sm group-hover:text-primary transition-colors text-on-surface whitespace-nowrap">Concierge Desk</span>
                 <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary flex items-center">expand_more</span>
               </div>
@@ -513,7 +526,9 @@ function AdminApp() {
                 <Overview content={draft} onNavigate={selectSection} />
               ) : null}
               {activeSection === 'inquiries' ? <InquiriesPanel pushToast={pushToast} /> : null}
-              {activeSection === 'brand' ? <BrandHeroEditor draft={draft} updateDraft={updateDraft} /> : null}
+              {activeSection === 'brand' ? (
+                <BrandHeroEditor draft={draft} updateDraft={updateDraft} pushToast={pushToast} />
+              ) : null}
               {activeSection === 'experience' ? (
                 <ExperienceEditor draft={draft} updateDraft={updateDraft} requestConfirm={requestConfirm} />
               ) : null}
@@ -1013,15 +1028,79 @@ function Overview({ content, onNavigate }) {
   );
 }
 
-function BrandHeroEditor({ draft, updateDraft }) {
+function BrandHeroEditor({ draft, updateDraft, pushToast }) {
   const avatarSrc = draft?.adminProfile?.avatar || null;
   const displayName = draft?.adminProfile?.displayName || 'Admin';
   const role = draft?.adminProfile?.role || 'Luxury Concierge';
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const fileRef = useRef(null);
+
+  const passwordsMatch = Boolean(newPassword && confirmPassword && newPassword === confirmPassword);
+  const canSubmitPassword = Boolean(
+    currentPassword
+    && newPassword.length >= 8
+    && passwordsMatch
+    && !isUpdatingPassword,
+  );
+
+  async function handlePasswordUpdate(event) {
+    event.preventDefault();
+    setPasswordMessage('');
+    setPasswordError('');
+
+    if (!currentPassword) {
+      setPasswordError('Enter your current password.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+
+    try {
+      if (!isApiEnabled()) {
+        throw new Error('Connect the API to update your password.');
+      }
+
+      const token = getStoredAdminToken();
+      const result = await changeAdminPassword(
+        {
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        },
+        token,
+      );
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordMessage(result.message || 'Password updated successfully.');
+      pushToast?.('success', 'Password updated successfully.');
+    } catch (error) {
+      const message = error.message ?? 'Unable to update password.';
+      setPasswordError(message);
+      pushToast?.('error', message);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  }
 
   async function handleAvatarUpload(event) {
     const file = event.target.files?.[0];
@@ -1057,9 +1136,9 @@ function BrandHeroEditor({ draft, updateDraft }) {
         </div>
         <p className="text-on-surface-variant text-xs mb-8">Manage your public-facing identity across the dashboard and sidebar.</p>
 
-        <div className="flex flex-col md:flex-row gap-10 items-start">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-stretch md:items-start">
           {/* Avatar Upload Zone */}
-          <div className="flex flex-col items-center gap-4 flex-shrink-0">
+          <div className="flex flex-col items-center gap-4 shrink-0 w-full md:w-auto">
             <div className="relative group">
               {avatarSrc ? (
                 <img
@@ -1081,7 +1160,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
               </button>
             </div>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleAvatarUpload} />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               <button
                 type="button"
                 className="border border-outline-variant text-on-surface px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider hover:border-primary transition-all"
@@ -1103,8 +1182,8 @@ function BrandHeroEditor({ draft, updateDraft }) {
           </div>
 
           {/* Profile Text Fields */}
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="admin-field">
+          <div className="admin-profile-fields flex-1 min-w-0 w-full grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+            <div className="admin-field min-w-0">
               <span>Display name</span>
               <input
                 type="text"
@@ -1113,7 +1192,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
                 onChange={(e) => updateDraft((next) => { next.adminProfile ??= {}; next.adminProfile.displayName = e.target.value; })}
               />
             </div>
-            <div className="admin-field">
+            <div className="admin-field min-w-0">
               <span>Role / Title</span>
               <input
                 type="text"
@@ -1122,7 +1201,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
                 onChange={(e) => updateDraft((next) => { next.adminProfile ??= {}; next.adminProfile.role = e.target.value; })}
               />
             </div>
-            <div className="admin-field col-span-2">
+            <div className="admin-field min-w-0 md:col-span-2">
               <span>Contact email</span>
               <input
                 type="email"
@@ -1199,58 +1278,122 @@ function BrandHeroEditor({ draft, updateDraft }) {
           <span className="material-symbols-outlined text-primary text-[20px]">lock</span>
           <span className="font-label-caps text-label-caps text-primary uppercase text-[11px] tracking-[0.12em]">Account Security</span>
         </div>
-        <p className="text-on-surface-variant text-xs mb-8">Manage your administrative access credentials.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="admin-field">
-            <span>New password</span>
-            <div className="relative">
-              <input
-                type={showNewPw ? 'text' : 'password'}
-                className="w-full pr-10"
-                value={newPassword}
-                placeholder="Enter new password"
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
-                onClick={() => setShowNewPw(!showNewPw)}
-              >
-                <span className="material-symbols-outlined text-[18px]">{showNewPw ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-          </div>
-          <div className="admin-field">
-            <span>Confirm password</span>
-            <div className="relative">
-              <input
-                type={showConfirmPw ? 'text' : 'password'}
-                className="w-full pr-10"
-                value={confirmPassword}
-                placeholder="Repeat new password"
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
-                onClick={() => setShowConfirmPw(!showConfirmPw)}
-              >
-                <span className="material-symbols-outlined text-[18px]">{showConfirmPw ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        {newPassword && confirmPassword && newPassword !== confirmPassword ? (
-          <p className="text-red-400 text-xs mt-3">Passwords do not match.</p>
-        ) : null}
-        {newPassword && confirmPassword && newPassword === confirmPassword ? (
-          <p className="text-green-400 text-xs mt-3">Passwords match — save to apply changes.</p>
-        ) : null}
+        <p className="text-on-surface-variant text-xs mb-8">
+          Update your administrative login password. Use a unique password of at least 8 characters.
+        </p>
 
-        <div className="mt-6 pt-6 border-t border-outline-variant flex items-center gap-3">
-          <span className="material-symbols-outlined text-primary text-[18px]">verified_user</span>
-          <span className="text-xs text-on-surface-variant">Multi-Factor Authentication is active for this account.</span>
-          <span className="ml-auto text-[10px] font-semibold text-primary uppercase tracking-wider">Enabled</span>
+        <form className="space-y-6" onSubmit={handlePasswordUpdate}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="admin-field md:col-span-2">
+              <span>Current password</span>
+              <div className="relative">
+                <input
+                  type={showCurrentPw ? 'text' : 'password'}
+                  className="w-full pr-10"
+                  value={currentPassword}
+                  placeholder="Enter current password"
+                  autoComplete="current-password"
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    setPasswordError('');
+                    setPasswordMessage('');
+                  }}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                  onClick={() => setShowCurrentPw(!showCurrentPw)}
+                  aria-label={showCurrentPw ? 'Hide current password' : 'Show current password'}
+                >
+                  <span className="material-symbols-outlined text-[18px]">{showCurrentPw ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-field">
+              <span>New password</span>
+              <div className="relative">
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  className="w-full pr-10"
+                  value={newPassword}
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPasswordError('');
+                    setPasswordMessage('');
+                  }}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                  onClick={() => setShowNewPw(!showNewPw)}
+                  aria-label={showNewPw ? 'Hide new password' : 'Show new password'}
+                >
+                  <span className="material-symbols-outlined text-[18px]">{showNewPw ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-field">
+              <span>Confirm new password</span>
+              <div className="relative">
+                <input
+                  type={showConfirmPw ? 'text' : 'password'}
+                  className="w-full pr-10"
+                  value={confirmPassword}
+                  placeholder="Repeat new password"
+                  autoComplete="new-password"
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setPasswordError('');
+                    setPasswordMessage('');
+                  }}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                  onClick={() => setShowConfirmPw(!showConfirmPw)}
+                  aria-label={showConfirmPw ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  <span className="material-symbols-outlined text-[18px]">{showConfirmPw ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {newPassword && newPassword.length < 8 ? (
+            <p className="text-on-surface-variant text-xs">New password must be at least 8 characters.</p>
+          ) : null}
+          {newPassword && confirmPassword && !passwordsMatch ? (
+            <p className="text-red-400 text-xs">Passwords do not match.</p>
+          ) : null}
+          {passwordsMatch ? (
+            <p className="text-green-400 text-xs">Passwords match. Click Update password to save.</p>
+          ) : null}
+          {passwordError ? <p className="text-red-400 text-xs">{passwordError}</p> : null}
+          {passwordMessage ? <p className="text-green-400 text-xs">{passwordMessage}</p> : null}
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <button
+              type="submit"
+              className="bg-primary text-on-primary px-6 py-3 font-label-caps text-label-caps text-xs hover:brightness-110 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+              disabled={!canSubmitPassword}
+            >
+              <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+              {isUpdatingPassword ? 'Updating...' : 'Update password'}
+            </button>
+            <p className="text-[11px] text-on-surface-variant">
+              This updates your login credentials only — not the site content Save button.
+            </p>
+          </div>
+        </form>
+
+        <div className="mt-6 pt-6 border-t border-outline-variant flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="material-symbols-outlined text-primary text-[18px] shrink-0">verified_user</span>
+          <span className="text-xs text-on-surface-variant flex-1 min-w-[12rem]">Multi-Factor Authentication is active for this account.</span>
+          <span className="text-[10px] font-semibold text-primary uppercase tracking-wider sm:ml-auto">Enabled</span>
         </div>
       </div>
 
@@ -1299,11 +1442,11 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
         <div className="col-span-12 md:col-span-8 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 flex flex-col justify-between rounded-xl">
           <div>
             <span className="font-label-caps text-label-caps text-primary uppercase block mb-4 text-[11px]">Core Identity</span>
-            <h3 className="font-display-lg text-display-lg text-on-background mb-6 leading-tight text-3xl md:text-4xl font-bold">
-              Crafting Legacies of <br />Unparalleled Luxury.
+            <h3 className="admin-core-identity-title text-on-background mb-6 font-bold font-display">
+              Crafting Legacies of Unparalleled Luxury.
             </h3>
-            <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl">
-              The About section is the digital soul of Queen's Banquet. Here, we manage the narrative that transforms service into an experience, and a mission into a standard of excellence.
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl text-pretty">
+              The About section is the digital soul of Queen&apos;s Banquet. Here, we manage the narrative that transforms service into an experience, and a mission into a standard of excellence.
             </p>
           </div>
         </div>
@@ -1437,13 +1580,13 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
 
         {/* CORE VALUES GRID */}
         <div className="col-span-12 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl">
-          <div className="flex items-center justify-between mb-8">
-            <div>
+          <div className="admin-section-toolbar mb-8">
+            <div className="admin-section-toolbar__copy min-w-0">
               <h4 className="font-headline-md text-headline-md text-on-surface font-bold text-xl">Core Values Portfolio</h4>
               <p className="text-on-surface-variant text-sm mt-1">Configure core values displayed on the landing page.</p>
             </div>
             <button
-              className="border border-primary text-primary px-4 py-2 font-label-caps text-label-caps text-xs hover:bg-primary hover:text-on-primary transition-all flex items-center gap-2"
+              className="admin-section-toolbar__action border border-primary text-primary px-4 py-2 font-label-caps text-label-caps text-xs hover:bg-primary hover:text-on-primary transition-all inline-flex items-center justify-center gap-2"
               type="button"
               onClick={() =>
                 updateDraft((next) => {
@@ -1601,9 +1744,9 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
 
               <div className="space-y-2">
                 <label className="text-[10px] text-primary uppercase block font-semibold">Booking Title</label>
-                <input
-                  className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-background text-sm font-semibold"
-                  type="text"
+                <textarea
+                  className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-background text-sm font-semibold resize-y min-h-[2.75rem]"
+                  rows="2"
                   value={titleVal}
                   onChange={(e) =>
                     updateDraft((next) => {
@@ -1617,7 +1760,7 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
               <div className="space-y-2">
                 <label className="text-[10px] text-primary uppercase block font-semibold">Booking Description</label>
                 <textarea
-                  className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-surface-variant text-xs leading-relaxed"
+                  className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-surface-variant text-xs leading-relaxed"
                   rows="4"
                   value={descVal}
                   onChange={(e) =>
@@ -1631,9 +1774,9 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
 
               <div className="space-y-2">
                 <label className="text-[10px] text-primary uppercase block font-semibold">Success Confirmation Message</label>
-                <input
-                  className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-background text-xs"
-                  type="text"
+                <textarea
+                  className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-background text-xs resize-y min-h-[2.5rem]"
+                  rows="2"
                   value={successVal}
                   onChange={(e) =>
                     updateDraft((next) => {
@@ -1650,13 +1793,13 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
         {/* RIGHT PANEL: CONTACT CHANNELS SIDEPANEL */}
         <div className="col-span-12 lg:col-span-5 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl flex flex-col justify-between h-auto">
           <div>
-            <div className="mb-8 flex justify-between items-center">
-              <div>
-                <span className="font-label-caps text-label-caps text-primary uppercase block mb-4 text-[11px]">Concierge Channels</span>
+            <div className="admin-section-toolbar mb-8">
+              <div className="admin-section-toolbar__copy min-w-0">
+                <span className="font-label-caps text-label-caps text-primary uppercase block mb-2 sm:mb-4 text-[11px]">Concierge Channels</span>
                 <h3 className="font-headline-md text-headline-md text-on-surface font-bold text-xl">Direct Communications</h3>
               </div>
               <button
-                className="border border-primary text-primary px-3 py-1.5 font-label-caps text-label-caps text-[10px] hover:bg-primary hover:text-on-primary transition-all flex items-center gap-1"
+                className="admin-section-toolbar__action border border-primary text-primary px-3 py-2 font-label-caps text-label-caps text-[10px] hover:bg-primary hover:text-on-primary transition-all inline-flex items-center justify-center gap-1"
                 type="button"
                 onClick={() =>
                   updateDraft((next) => {
@@ -1692,11 +1835,11 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                    <div className="space-y-1 min-w-0">
                       <label className="text-[9px] text-primary uppercase block font-semibold">Label</label>
                       <input
-                        className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-on-surface font-semibold text-xs"
+                        className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-on-surface font-semibold text-xs text-[16px] sm:text-xs"
                         type="text"
                         value={channel.label}
                         onChange={(e) =>
@@ -1706,10 +1849,10 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
                         }
                       />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <label className="text-[9px] text-primary uppercase block font-semibold">Display Value</label>
                       <input
-                        className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-on-surface text-xs"
+                        className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-on-surface text-xs text-[16px] sm:text-xs"
                         type="text"
                         value={channel.value}
                         onChange={(e) =>
@@ -1773,11 +1916,11 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
             <h3 className="font-headline-md text-headline-md text-on-surface text-lg font-bold">Catalog Hero Intro</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-bento-gap">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-[10px] text-primary uppercase block font-semibold">Hero Title</label>
-              <input
-                className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-background font-headline-md text-headline-md text-xl"
-                type="text"
+              <textarea
+                className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-background font-headline-md text-[clamp(1.05rem,3.5vw,1.25rem)] font-semibold resize-y min-h-[2.75rem]"
+                rows="2"
                 value={heroTitle}
                 onChange={(e) =>
                   updateDraft((next) => {
@@ -1787,10 +1930,10 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
                 }
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-[10px] text-primary uppercase block font-semibold">Hero Copy Description</label>
               <textarea
-                className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-surface-variant text-sm leading-relaxed"
+                className="admin-field-text w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-2 text-on-surface-variant text-sm leading-relaxed"
                 rows="3"
                 value={heroCopy}
                 onChange={(e) =>
@@ -1806,13 +1949,13 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
       </div>
 
       {/* SERVICES DYNAMIC BENTO GRID */}
-      <div className="flex justify-between items-center mb-4 mt-8">
-        <div>
+      <div className="admin-section-toolbar mb-4 mt-8">
+        <div className="admin-section-toolbar__copy min-w-0">
           <h4 className="font-headline-md text-headline-md text-on-surface font-bold text-xl">Catalog Items</h4>
           <p className="text-on-surface-variant text-sm mt-1">Configure individual service detail blocks, images, and prices.</p>
         </div>
         <button
-          className="border border-primary text-primary px-4 py-2 font-label-caps text-label-caps text-xs hover:bg-primary hover:text-on-primary transition-all flex items-center gap-2"
+          className="admin-section-toolbar__action border border-primary text-primary px-4 py-2 font-label-caps text-label-caps text-xs hover:bg-primary hover:text-on-primary transition-all inline-flex items-center justify-center gap-2"
           type="button"
           onClick={() =>
             updateDraft((next) => {
@@ -1844,7 +1987,7 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
           return (
             <div
               key={index}
-              className={`${colSpan} bg-surface-container-low border border-outline-variant p-6 rounded-xl relative bento-card-glow transition-all duration-300 flex flex-col justify-between`}
+              className={`admin-service-card ${colSpan} bg-surface-container-low border border-outline-variant p-4 sm:p-6 rounded-xl relative bento-card-glow transition-all duration-300 flex flex-col justify-between min-w-0`}
             >
               {/* IMAGE SLOT WITH EDIT OVERLAY IF NOT SPAN 3 */}
               {colSpan !== 'col-span-3' && (
@@ -2015,13 +2158,15 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <div className="space-y-bento-gap text-on-surface">
       {/* HEADER BAR */}
-      <div className="mb-8 flex justify-between items-end">
-        <div>
-          <span className="text-primary font-label-caps text-label-caps uppercase tracking-[0.3em] mb-4 block text-[11px]">Event Tiers</span>
-          <h2 className="font-headline-md text-3xl leading-tight text-on-surface font-bold">Tiered Luxury Experiences</h2>
+      <div className="admin-section-toolbar mb-8">
+        <div className="admin-section-toolbar__copy min-w-0">
+          <span className="text-primary font-label-caps text-label-caps uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-2 sm:mb-4 block text-[11px]">Event Tiers</span>
+          <h2 className="font-headline-md text-[clamp(1.4rem,5vw,1.875rem)] leading-tight text-on-surface font-bold text-balance">
+            Tiered Luxury Experiences
+          </h2>
         </div>
         <button
-          className="bg-primary text-on-primary px-8 py-3 font-label-caps text-label-caps flex items-center gap-2 hover:bg-primary-container transition-all text-xs"
+          className="admin-section-toolbar__action bg-primary text-on-primary px-5 sm:px-8 py-3 font-label-caps text-label-caps inline-flex items-center justify-center gap-2 hover:bg-primary-container transition-all text-xs"
           type="button"
           onClick={() =>
             updateDraft((next) => {
@@ -2059,12 +2204,12 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
                 </div>
               )}
 
-              <div className="mb-8 flex justify-between items-start">
-                <div>
+              <div className="mb-8 flex justify-between items-start gap-3 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-primary font-label-caps text-label-caps uppercase tracking-widest mb-2 text-[10px]">{tierLabel}</p>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center min-w-0">
                     <input
-                      className="bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-on-surface font-headline-md text-2xl font-bold w-full"
+                      className="admin-field-text bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-on-surface font-headline-md text-[clamp(1.15rem,4vw,1.5rem)] font-bold w-full min-w-0"
                       type="text"
                       value={item.name}
                       onChange={(e) =>
@@ -2075,7 +2220,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <button
                     className={`p-1 flex items-center rounded ${isFeatured ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
                     type="button"
@@ -2118,10 +2263,10 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
                     const isIncluded = typeof feature === 'string' ? true : feature.included !== false;
 
                     return (
-                      <div className="flex items-center gap-2" key={fIdx}>
+                      <div className="admin-package-feature flex items-start gap-2 min-w-0" key={fIdx}>
                         <button
                           type="button"
-                          className="flex items-center"
+                          className="flex items-center shrink-0 mt-0.5"
                           onClick={() =>
                             updateDraft((next) => {
                               const feat = next.packages[index].features[fIdx];
@@ -2138,7 +2283,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
                           </span>
                         </button>
                         <input
-                          className="flex-1 bg-transparent border-none border-b border-transparent hover:border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-xs text-on-surface-variant"
+                          className="admin-field-text min-w-0 flex-1 bg-transparent border-none border-b border-transparent hover:border-outline-variant focus:border-primary focus:ring-0 py-0.5 text-xs text-on-surface-variant"
                           type="text"
                           value={featureText}
                           onChange={(e) =>
@@ -2153,7 +2298,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
                           }
                         />
                         <button
-                          className="text-on-surface-variant hover:text-red-400 p-0.5 flex items-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="admin-package-feature__remove text-on-surface-variant hover:text-red-400 p-0.5 flex items-center shrink-0"
                           type="button"
                           onClick={() =>
                             updateDraft((next) => {
@@ -2347,25 +2492,25 @@ function TestimonialsEditor({ draft, updateDraft, requestConfirm }) {
   return (
     <div className="space-y-bento-gap text-on-surface">
       {/* TOP HEADER BAR */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-sm">search</span>
-            <input
-              className="bg-surface-container-low border-none text-on-surface placeholder:text-outline-variant font-body-sm text-body-sm pl-10 pr-4 py-2 w-64 focus:ring-1 focus:ring-primary focus:outline-none rounded-lg"
-              placeholder="Search reviews..."
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      <div className="admin-section-toolbar admin-section-toolbar--search mb-8">
+        <div className="admin-section-toolbar__search relative min-w-0 flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-sm pointer-events-none">search</span>
+          <input
+            className="w-full max-w-full bg-surface-container-low border-none text-on-surface placeholder:text-outline-variant font-body-sm text-body-sm pl-10 pr-4 py-2.5 focus:ring-1 focus:ring-primary focus:outline-none rounded-lg text-[16px]"
+            placeholder="Search reviews..."
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
         <button
-          className="bg-primary text-on-primary px-6 py-2 font-label-caps text-label-caps text-xs hover:brightness-110 transition-all flex items-center gap-2"
+          className="admin-section-toolbar__action bg-primary text-on-primary px-4 sm:px-6 py-2.5 font-label-caps text-label-caps text-xs hover:brightness-110 transition-all inline-flex items-center justify-center gap-2 shrink-0"
           onClick={openCreate}
+          type="button"
+          aria-label="Add new testimonial"
         >
           <span className="material-symbols-outlined text-sm">add</span>
-          <span>NEW TESTIMONIAL</span>
+          <span className="admin-testimonial-add-label">NEW TESTIMONIAL</span>
         </button>
       </div>
 

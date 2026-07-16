@@ -55,6 +55,29 @@ export async function fetchCurrentAdmin(token) {
   return response.json();
 }
 
+export async function changeAdminPassword(payload, token) {
+  if (!API_BASE_URL) {
+    throw new Error('Connect the API to update your password.');
+  }
+
+  if (!token) {
+    throw new Error('Admin session expired. Please sign in again.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/admin/password`, {
+    method: 'PATCH',
+    headers: buildHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unable to update password.' }));
+    throw new Error(error.message ?? 'Unable to update password.');
+  }
+
+  return response.json();
+}
+
 export async function fetchAdminInquiries(token) {
   if (!API_BASE_URL || !token) {
     return [];

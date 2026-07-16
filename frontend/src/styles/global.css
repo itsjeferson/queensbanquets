@@ -3446,6 +3446,11 @@ html.dark .relative.group select option {
     color 200ms ease;
 }
 
+/* Let Tailwind visibility utilities win over the default display */
+.theme-toggle.hidden {
+  display: none !important;
+}
+
 .theme-toggle:hover {
   border-color: var(--primary);
   color: var(--primary);
