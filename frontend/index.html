@@ -51,19 +51,19 @@
               "surface": "var(--surface, #fbf9f9)",
               "on-tertiary-container": "var(--on-tertiary-container, #464545)",
               "surface-container-lowest": "var(--surface-container-lowest, #ffffff)",
-              "inverse-surface": "#303031",
+              "inverse-surface": "var(--inverse-surface, #303031)",
               "primary-fixed": "#ffe088",
               "on-error-container": "var(--on-error-container, #93000a)",
               "background": "var(--background, #fbf9f9)",
               "outline": "var(--outline, #7f7663)",
               "on-background": "var(--on-background, #1b1c1c)",
-              "inverse-on-surface": "#f2f0f0",
+              "inverse-on-surface": "var(--inverse-on-surface, #f2f0f0)",
               "on-primary-fixed-variant": "#574500",
               "surface-variant": "var(--surface-variant, #e3e2e2)",
               "tertiary-fixed": "#e5e2e1",
               "on-tertiary": "var(--on-tertiary, #ffffff)",
               "tertiary-container": "var(--tertiary-container, #b5b2b2)",
-              "surface-dim": "#dbdad9",
+              "surface-dim": "var(--surface-dim, #dbdad9)",
               "on-primary-container": "var(--on-primary-container, #554300)",
               "tertiary-fixed-dim": "#c9c6c5"
             },
@@ -77,12 +77,22 @@
               "margin-mobile": "24px",
               "container-max": "1280px",
               "margin-desktop": "64px",
+              "page-x": "clamp(1rem, 4.5vw, 4rem)",
+              "section-y": "clamp(3.5rem, 8vw, 10rem)",
               "gutter": "32px",
               "unit": "8px",
               "sidebar-width": "280px",
               "base": "8px",
               "container-padding": "32px",
               "bento-gap": "20px"
+            },
+            "screens": {
+              "xs": "380px",
+              "sm": "640px",
+              "md": "768px",
+              "lg": "1024px",
+              "xl": "1280px",
+              "2xl": "1536px"
             },
             "fontFamily": {
               "headline-lg": ["Playfair Display"],
@@ -114,6 +124,22 @@
         },
       }
     } catch (_e) { }
+  </script>
+  <script>
+    (function () {
+      try {
+        var key = 'queens-banquet-theme';
+        var stored = localStorage.getItem(key);
+        var theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolved = theme === 'system' ? (prefersDark ? 'dark' : 'light') : theme;
+        var root = document.documentElement;
+        if (resolved === 'dark') root.classList.add('dark');
+        else root.classList.remove('dark');
+        root.style.colorScheme = resolved;
+        root.dataset.theme = resolved;
+      } catch (e) {}
+    })();
   </script>
   <title>Queen's Banquet Events | Wedding Coordination by Marou Madrid</title>
 </head>

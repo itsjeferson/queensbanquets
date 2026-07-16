@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { TriangleAlert } from 'lucide-react';
 
 function ConfirmDialog({ dialog, onCancel }) {
   useEffect(() => {
@@ -27,45 +26,67 @@ function ConfirmDialog({ dialog, onCancel }) {
     return null;
   }
 
+  const isLogout =
+    dialog.variant === 'logout'
+    || (dialog.confirmLabel || '').toLowerCase().includes('sign out')
+    || (dialog.confirmLabel || '').toLowerCase() === 'logout'
+    || (dialog.title || '').toLowerCase().includes('sign out');
+
+  const message = getDialogMessage(dialog, isLogout);
+  const confirmLabel = dialog.confirmLabel ?? 'Confirm';
+  const cancelLabel = dialog.cancelLabel ?? 'Cancel';
+
   return createPortal(
-    <div 
-      className="admin-modal-backdrop" 
-      role="presentation" 
+    <div
+      className="qb-modal-backdrop"
+      role="presentation"
       onClick={onCancel}
-      style={{ zIndex: 9999, position: 'fixed', inset: 0 }}
     >
       <div
-        className="admin-modal"
+        className={`qb-modal${isLogout ? ' qb-modal--logout' : ''}`}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="admin-modal-title"
+        aria-labelledby="qb-modal-message"
         onClick={(event) => event.stopPropagation()}
-        style={{ zIndex: 10000 }}
       >
-        <div className="admin-modal-icon">
-          <TriangleAlert aria-hidden="true" size={22} strokeWidth={1.7} />
-        </div>
-        <h3 id="admin-modal-title">{dialog.title ?? 'Are you sure?'}</h3>
-        <p>{dialog.message}</p>
-        <div className="admin-modal-actions">
-          <button className="admin-secondary-button" type="button" onClick={onCancel}>
-            Cancel
+        <p className="qb-modal__message" id="qb-modal-message">
+          {message}
+        </p>
+        <div className="qb-modal__actions">
+          <button className="qb-modal__btn qb-modal__btn--cancel" type="button" onClick={onCancel}>
+            {cancelLabel}
           </button>
           <button
-            className="admin-danger-button"
+            className="qb-modal__btn qb-modal__btn--confirm"
             type="button"
             onClick={() => {
               dialog.onConfirm();
               onCancel();
             }}
           >
-            {dialog.confirmLabel ?? 'Remove'}
+            {confirmLabel}
           </button>
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
+}
+
+function getDialogMessage(dialog, isLogout) {
+  if (isLogout) {
+    return 'Are you sure, you want to logout?';
+  }
+
+  if (dialog.message) {
+    return dialog.message;
+  }
+
+  if (dialog.title) {
+    return dialog.title.endsWith('?') ? dialog.title : `${dialog.title}?`;
+  }
+
+  return 'Are you sure?';
 }
 
 export default ConfirmDialog;

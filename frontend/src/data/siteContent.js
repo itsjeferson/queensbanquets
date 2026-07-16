@@ -110,16 +110,36 @@ export const testimonials = [
     quote: 'An orchestration of pure magic. Every detail was handled with a level of discretion and artistry that is simply unmatched in the industry.',
     author: 'THE DUCHESS OF ESSEX',
     event: 'Mayfair, London',
+    rating: 5,
+    photoUrl: '',
   },
   {
     quote: 'The gold standard of elegance. Our gala was not just an event; it was a masterpiece that our guests are still talking about months later.',
     author: 'AURELIA & JULIAN',
     event: 'Villa d\'Este, Lake Como',
+    rating: 5,
+    photoUrl: '',
   },
   {
     quote: 'Their ability to transform a heritage estate into a contemporary wonderland while respecting its history is truly a rare gift.',
     author: 'MAXIMILIAN VON BERG',
     event: 'Bavarian Alps',
+    rating: 5,
+    photoUrl: '',
+  },
+  {
+    quote: 'From the first consultation to the final farewell, every moment felt curated with intention. Guests still ask who created such an unforgettable evening.',
+    author: 'ISABELLA & THOMAS REID',
+    event: 'Cotswolds Manor, England',
+    rating: 5,
+    photoUrl: '',
+  },
+  {
+    quote: 'A rare blend of precision and warmth. Our corporate celebration felt like a private soirée — refined, seamless, and entirely memorable.',
+    author: 'HELENA MARQUETTE',
+    event: 'Singapore Ballroom Gala',
+    rating: 5,
+    photoUrl: '',
   },
 ];
 

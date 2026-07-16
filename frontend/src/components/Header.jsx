@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useLandingContent } from '../content/LandingContentContext.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 function Header() {
   const {
@@ -96,22 +97,23 @@ function Header() {
           className="w-full flex items-center justify-between transition-all duration-300"
         >
           <a
-            className="font-headline-md text-headline-md text-primary italic cursor-pointer active:scale-95 transition-all"
+            className="font-headline-md text-primary italic cursor-pointer active:scale-95 transition-all text-lg sm:text-headline-md min-w-0 shrink truncate pr-2"
             href="#top"
             onClick={closeMenu}
           >
-            Queen's Banquet Events
+            <span className="sm:hidden">Queen's Banquet</span>
+            <span className="hidden sm:inline">Queen's Banquet Events</span>
           </a>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-10">
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-10 shrink-0">
             {navItems.map((item) => {
               const isActive = activeHref === item.href || (item.href === '#top' && activeHref === '#home');
               return (
                 <a
                   key={item.href}
                   href={item.href}
-                  className={`font-label-md text-label-md uppercase tracking-widest pb-1 transition-all duration-300 ${
+                  className={`font-label-md text-label-md uppercase tracking-widest pb-1 transition-all duration-300 whitespace-nowrap ${
                     isActive
                       ? 'text-primary border-b-2 border-primary'
                       : 'text-on-surface-variant hover:text-primary border-b-2 border-transparent'
@@ -123,17 +125,18 @@ function Header() {
             })}
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <ThemeToggle compact className="hidden sm:inline-flex" />
             <a
               href="#contact"
-              className="hidden lg:block px-6 py-2 border border-primary text-primary font-label-md uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all duration-300 active:scale-95"
+              className="hidden xl:block px-6 py-2 border border-primary text-primary font-label-md uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all duration-300 active:scale-95"
             >
               Request a Meeting
             </a>
 
-            {/* Mobile Menu Button */}
+            {/* Tablet / Mobile Menu Button */}
             <button
-              className="md:hidden text-on-surface hover:text-primary transition-colors p-2"
+              className="lg:hidden text-on-surface hover:text-primary transition-colors p-2 -mr-1"
               type="button"
               aria-expanded={menuOpen}
               aria-controls="site-menu"
@@ -150,9 +153,9 @@ function Header() {
         </div>
       </header>
 
-      {/* Mobile Slide-over Menu */}
+      {/* Mobile / Tablet Slide-over Menu */}
       <div
-        className={`fixed inset-y-0 right-0 w-64 bg-surface z-50 flex flex-col p-6 gap-6 transform transition-transform duration-300 ease-in-out md:hidden border-l border-outline-variant/20 ${
+        className={`fixed inset-y-0 right-0 w-[min(20rem,88vw)] bg-surface z-50 flex flex-col p-6 gap-6 transform transition-transform duration-300 ease-in-out lg:hidden border-l border-outline-variant/20 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] ${
           menuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         id="site-menu"
@@ -190,13 +193,16 @@ function Header() {
           >
             Request a Meeting
           </a>
+          <div className="pt-2 sm:hidden">
+            <ThemeToggle />
+          </div>
         </nav>
       </div>
 
-      {/* Mobile Backdrop */}
+      {/* Mobile / Tablet Backdrop */}
       {menuOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={closeMenu}
           aria-hidden="true"
         />

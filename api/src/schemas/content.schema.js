@@ -11,6 +11,8 @@ const testimonialSchema = z.object({
   author: z.string(),
   event: z.string(),
   photoUrl: z.string().optional(),
+  rating: z.number().min(1).max(5).optional(),
+  featured: z.boolean().optional(),
 });
 
 export const landingContentSchema = z.object({

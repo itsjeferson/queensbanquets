@@ -15,6 +15,9 @@ import AdminToastStack from './AdminToast.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import InquiriesPanel from './InquiriesPanel.jsx';
 import { formatRelativeDate, getStatusMeta } from './inquiryStatus.js';
+import ThemeToggle from '../components/ThemeToggle.jsx';
+import { useTheme } from '../theme/ThemeContext.jsx';
+import PageLoader from '../components/PageLoader.jsx';
 import './admin.css';
 import {
   BriefcaseBusiness,
@@ -39,6 +42,8 @@ import {
 const ADMIN_SESSION_KEY = 'queens-banquet-admin-session';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? 'queensbanquet07@gmail.com';
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? 'marou-admin';
+const SECTION_LOAD_MS = 420;
+const AUTH_LOAD_MS = 900;
 
 const sidebarItems = [
   { id: 'overview', label: 'Dashboard', iconName: 'dashboard', group: 'Work' },
@@ -63,7 +68,7 @@ const pageTitles = {
 };
 
 function AdminApp() {
-  const { content, setContent, resetContent } = useLandingContent();
+  const { content, setContent, resetContent, isHydrating } = useLandingContent();
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => window.localStorage.getItem(ADMIN_SESSION_KEY) === 'active',
   );
@@ -73,6 +78,13 @@ function AdminApp() {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [sectionLoading, setSectionLoading] = useState(false);
+  const [sectionLoadingLabel, setSectionLoadingLabel] = useState('Loading section');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoadingLabel, setAuthLoadingLabel] = useState('Signing in');
+  const sectionTimerRef = useRef(null);
+  const authTimerRef = useRef(null);
 
   function pushToast(type, message) {
     const id = crypto.randomUUID();
@@ -91,6 +103,18 @@ function AdminApp() {
   useEffect(() => {
     setDraft(content);
   }, [content]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setBootLoading(false), 750);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (sectionTimerRef.current) window.clearTimeout(sectionTimerRef.current);
+      if (authTimerRef.current) window.clearTimeout(authTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isApiEnabled()) {
@@ -144,24 +168,56 @@ function AdminApp() {
   }, [sidebarOpen]);
 
   function selectSection(sectionId) {
-    setActiveSection(sectionId);
+    if (sectionId === activeSection) {
+      setSidebarOpen(false);
+      return;
+    }
+
     setSidebarOpen(false);
+    setSectionLoadingLabel(`Loading ${pageTitles[sectionId] || 'section'}`);
+    setSectionLoading(true);
+    if (sectionTimerRef.current) {
+      window.clearTimeout(sectionTimerRef.current);
+    }
+    sectionTimerRef.current = window.setTimeout(() => {
+      setActiveSection(sectionId);
+      setSectionLoading(false);
+    }, SECTION_LOAD_MS);
   }
 
   function handleLoginSuccess() {
-    window.localStorage.setItem(ADMIN_SESSION_KEY, 'active');
-    setIsAuthenticated(true);
+    setAuthLoadingLabel('Opening dashboard');
+    setAuthLoading(true);
+    if (authTimerRef.current) {
+      window.clearTimeout(authTimerRef.current);
+    }
+    authTimerRef.current = window.setTimeout(() => {
+      window.localStorage.setItem(ADMIN_SESSION_KEY, 'active');
+      setIsAuthenticated(true);
+      setActiveSection('overview');
+      setAuthLoading(false);
+    }, AUTH_LOAD_MS);
   }
 
   function handleLogout() {
     requestConfirm({
       title: 'Sign out?',
-      message: 'Are you sure you want to log out of the administrative dashboard?',
-      confirmLabel: 'Sign out',
+      message: 'Are you sure, you want to logout?',
+      confirmLabel: 'Logout',
+      variant: 'logout',
       onConfirm: () => {
-        window.localStorage.removeItem(ADMIN_SESSION_KEY);
-        clearAdminToken();
-        setIsAuthenticated(false);
+        setAuthLoadingLabel('Signing out');
+        setAuthLoading(true);
+        if (authTimerRef.current) {
+          window.clearTimeout(authTimerRef.current);
+        }
+        authTimerRef.current = window.setTimeout(() => {
+          window.localStorage.removeItem(ADMIN_SESSION_KEY);
+          clearAdminToken();
+          setIsAuthenticated(false);
+          setSidebarOpen(false);
+          setAuthLoading(false);
+        }, AUTH_LOAD_MS);
       },
     });
   }
@@ -197,6 +253,7 @@ function AdminApp() {
       title: 'Reset all content?',
       message: 'This restores every landing page section to its default text and images. This cannot be undone.',
       confirmLabel: 'Reset content',
+      variant: 'danger',
       onConfirm: async () => {
         try {
           const defaultContent = await resetContent();
@@ -215,7 +272,23 @@ function AdminApp() {
   }
 
   if (!isAuthenticated) {
-    return <AdminLogin onLoginSuccess={handleLoginSuccess} brand={content.brand} />;
+    return (
+      <>
+        <PageLoader
+          visible={bootLoading || authLoading || isHydrating}
+          label={
+            authLoading
+              ? authLoadingLabel
+              : isHydrating
+                ? 'Loading workspace'
+                : 'Opening admin portal'
+          }
+        />
+        {!bootLoading && !authLoading ? (
+          <AdminLogin onLoginSuccess={handleLoginSuccess} brand={content.brand} />
+        ) : null}
+      </>
+    );
   }
 
   const activeItem = sidebarItems.find((item) => item.id === activeSection);
@@ -223,8 +296,12 @@ function AdminApp() {
 
   return (
     <>
+      <PageLoader
+        visible={bootLoading || authLoading}
+        label={authLoading ? authLoadingLabel : 'Opening dashboard'}
+      />
       {/* Mobile top navigation bar */}
-      <div className="md:hidden h-14 bg-background border-b border-outline-variant flex items-center justify-between px-6 sticky top-0 z-40">
+      <div className="md:hidden h-14 bg-background border-b border-outline-variant flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
         <button
           className="text-on-surface hover:text-primary p-2 flex items-center"
           type="button"
@@ -235,25 +312,26 @@ function AdminApp() {
         >
           <span className="material-symbols-outlined">menu</span>
         </button>
-        <strong className="text-on-surface tracking-tight font-headline-md text-base">Queen's Banquet</strong>
-        <div className="w-10" />
+        <strong className="text-on-surface tracking-tight font-headline-md text-sm sm:text-base truncate px-2">Queen's Banquet</strong>
+        <ThemeToggle compact />
       </div>
 
-      <div className="admin-shell min-h-screen bg-background text-on-surface flex">
+      <div className="admin-shell min-h-dvh bg-background text-on-surface flex overflow-x-clip">
         {/* Left Side Navigation Menu */}
         <aside
-          className={`fixed left-0 top-0 h-screen w-sidebar-width bg-surface-container border-r border-outline-variant flex flex-col py-container-padding z-50 transition-transform duration-300 md:translate-x-0 ${
+          className={`fixed left-0 top-0 h-dvh bg-surface-container border-r border-outline-variant flex flex-col py-6 sm:py-container-padding z-50 transition-transform duration-300 overflow-y-auto overscroll-contain md:translate-x-0 md:w-sidebar-width ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
           id="admin-sidebar"
+          style={{ width: 'min(280px, 88vw)' }}
         >
-          <div className="px-6 mb-10 flex justify-between items-center">
-            <div>
-              <h1 className="font-headline-md text-headline-md text-primary tracking-tight">Queen's Banquet</h1>
+          <div className="px-4 sm:px-6 mb-8 sm:mb-10 flex justify-between items-start gap-3">
+            <div className="min-w-0">
+              <h1 className="font-headline-md text-xl sm:text-headline-md text-primary tracking-tight truncate">Queen's Banquet</h1>
               <p className="font-label-caps text-label-caps text-on-surface-variant mt-1 text-[11px]">LUXURY CONCIERGE</p>
             </div>
             <button
-              className="md:hidden text-on-surface-variant hover:text-primary flex items-center"
+              className="md:hidden text-on-surface-variant hover:text-primary flex items-center shrink-0"
               type="button"
               aria-label="Close admin menu"
               onClick={() => setSidebarOpen(false)}
@@ -262,7 +340,7 @@ function AdminApp() {
             </button>
           </div>
 
-          <nav className="flex-1 px-2 space-y-6" aria-label="Admin sections">
+          <nav className="flex-1 px-2 space-y-6 pb-4" aria-label="Admin sections">
             {(() => {
               // Group sidebar items by their group
               const groups = sidebarItems.reduce((acc, item) => {
@@ -304,7 +382,7 @@ function AdminApp() {
             })()}
           </nav>
 
-          <div className="px-6 mt-auto">
+          <div className="px-4 sm:px-6 mt-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
             <button
               className="w-full flex items-center gap-3 p-3 rounded-lg bg-surface-container-high border border-outline-variant hover:brightness-110 transition-all text-left"
               type="button"
@@ -312,7 +390,7 @@ function AdminApp() {
               title="Sign out"
             >
               <img
-                className="w-10 h-10 rounded-full object-cover border border-primary"
+                className="w-10 h-10 rounded-full object-cover border border-primary shrink-0"
                 alt=""
                 src={draft?.adminProfile?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuC8q5SWUZ4h09Vxw_oq6GXDpVnokXQWGWrfwwiCPcSAtB5LVDyctBoZ9wMz24nmZ6JXuy91YoYKgPHrCWoBbWFvXKRfV8UwhIr7CrEn2YrLmmhB6s-60YLU9c7zdJj4FLe8ommixgSsN5j15ZbMdeBfB-OrIxAn9jEYgphZSVl93BEtQHUc5XRB299yAzjy-7GpfU3lc5b8y4FlA7pWCeqfHT07NHopkuTvvBlSxFKkWhj_1WG4R-O1MBpWnVyAfPF74ZG-xFfvImuM'}
               />
@@ -335,49 +413,55 @@ function AdminApp() {
         ) : null}
 
         {/* Main Work Area Container */}
-        <div className="flex-1 md:ml-sidebar-width min-h-screen flex flex-col">
+        <div className="flex-1 md:ml-sidebar-width min-h-dvh flex flex-col min-w-0 w-full">
           {/* TopNavBar */}
-          <header className="h-16 bg-background border-b border-outline-variant flex items-center justify-between px-container-padding sticky top-0 z-30">
-            <div className="flex items-center w-1/3">
-              <div className="relative w-full max-w-sm">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+          <header className="min-h-14 sm:h-16 bg-background border-b border-outline-variant flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-container-padding sticky top-0 z-30">
+            <div className="flex items-center flex-1 min-w-0 max-w-md">
+              <div className="relative w-full hidden sm:block">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
                 <input
                   className="w-full bg-transparent border-none border-b border-outline-variant focus:border-primary focus:ring-0 text-sm py-2 pl-10 transition-all placeholder:text-on-surface-variant/50 text-on-surface"
-                  placeholder="Search inquiries, guests, or logistics..."
+                  placeholder="Search inquiries..."
                   type="text"
                 />
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <button className="relative text-on-surface-variant hover:text-primary transition-colors flex items-center">
+            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 shrink-0">
+              <ThemeToggle compact className="hidden md:inline-flex" />
+              <button className="relative text-on-surface-variant hover:text-primary transition-colors flex items-center" type="button" aria-label="Notifications">
                 <span className="material-symbols-outlined">notifications</span>
                 <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
               </button>
-              <button className="text-on-surface-variant hover:text-primary transition-colors flex items-center">
+              <button className="hidden sm:flex text-on-surface-variant hover:text-primary transition-colors items-center" type="button" aria-label="Help">
                 <span className="material-symbols-outlined">help</span>
               </button>
-              <div className="h-8 w-[1px] bg-outline-variant"></div>
-              <div className="flex items-center gap-3 cursor-pointer group">
-                <span className="font-title-sm text-title-sm group-hover:text-primary transition-colors text-on-surface">Concierge Desk</span>
+              <div className="hidden md:block h-8 w-[1px] bg-outline-variant"></div>
+              <div className="hidden md:flex items-center gap-3 cursor-pointer group">
+                <span className="font-title-sm text-title-sm group-hover:text-primary transition-colors text-on-surface whitespace-nowrap">Concierge Desk</span>
                 <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary flex items-center">expand_more</span>
               </div>
             </div>
           </header>
 
           {/* Main workspace container */}
-          <main className="flex-1 p-container-padding bg-background overflow-y-auto">
+          <main className="relative flex-1 p-4 sm:p-6 lg:p-container-padding bg-background overflow-y-auto overflow-x-clip">
+            <PageLoader
+              visible={sectionLoading}
+              variant="overlay"
+              label={sectionLoadingLabel}
+            />
             {/* Section heading header block */}
-            <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div>
+            <header className="mb-6 sm:mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6">
+              <div className="min-w-0">
                 <p className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-2 text-[11px]">
                   <span>Admin</span>
                   <span className="mx-2">/</span>
                   <span>{activeItem?.label ?? 'Dashboard'}</span>
                 </p>
-                <h2 className="font-headline-md text-display-lg-mobile text-on-surface font-bold text-3xl">
+                <h2 className="font-headline-md text-on-surface font-bold text-2xl sm:text-3xl text-balance">
                   {activeSection === 'overview' ? 'Executive Overview' : pageTitles[activeSection]}
                 </h2>
-                <p className="text-on-surface-variant font-body-sm max-w-2xl mt-1">
+                <p className="text-on-surface-variant font-body-sm max-w-2xl mt-1 text-pretty">
                   {activeSection === 'overview'
                     ? 'Manage your premium banquet operations and real-time inquiries with absolute precision.'
                     : activeSection === 'brand'
@@ -387,32 +471,32 @@ function AdminApp() {
               </div>
 
               {/* Action Buttons for Editors */}
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
                 <a
-                  className="border border-outline-variant text-on-surface px-6 py-2 font-label-caps text-label-caps hover:border-primary transition-all flex items-center gap-2 text-xs"
+                  className="border border-outline-variant text-on-surface px-4 sm:px-6 py-2 font-label-caps text-label-caps hover:border-primary transition-all flex items-center justify-center gap-2 text-xs flex-1 sm:flex-none"
                   href="/"
                 >
                   <span className="material-symbols-outlined text-[18px]">visibility</span>
-                  View site
+                  <span className="whitespace-nowrap">View site</span>
                 </a>
                 {activeSection !== 'overview' && activeSection !== 'inquiries' ? (
                   <>
                     <button
-                      className="border border-outline-variant text-on-surface px-6 py-2 font-label-caps text-label-caps hover:border-primary transition-all flex items-center gap-2 text-xs"
+                      className="border border-outline-variant text-on-surface px-4 sm:px-6 py-2 font-label-caps text-label-caps hover:border-primary transition-all flex items-center justify-center gap-2 text-xs flex-1 sm:flex-none"
                       type="button"
                       onClick={handleReset}
                     >
                       <span className="material-symbols-outlined text-[18px]">restore</span>
-                      Reset content
+                      <span className="whitespace-nowrap">Reset</span>
                     </button>
                     <button
-                      className="bg-primary text-on-primary px-6 py-2 font-label-caps text-label-caps hover:brightness-110 transition-all disabled:opacity-50 flex items-center gap-2 text-xs"
+                      className="bg-primary text-on-primary px-4 sm:px-6 py-2 font-label-caps text-label-caps hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs flex-1 sm:flex-none sm:min-w-[8.5rem]"
                       type="button"
                       onClick={saveChanges}
                       disabled={isSaving}
                     >
                       <span className="material-symbols-outlined text-[18px]">save</span>
-                      {isSaving ? 'Saving...' : 'Save changes'}
+                      <span className="whitespace-nowrap">{isSaving ? 'Saving...' : 'Save'}</span>
                     </button>
                   </>
                 ) : null}
@@ -420,7 +504,11 @@ function AdminApp() {
             </header>
 
             {/* Active view */}
-            <div className="admin-content-view">
+            <div
+              className={`admin-content-view min-w-0 transition-opacity duration-300 ${
+                sectionLoading ? 'opacity-40 pointer-events-none' : 'opacity-100'
+              }`}
+            >
               {activeSection === 'overview' ? (
                 <Overview content={draft} onNavigate={selectSection} />
               ) : null}
@@ -489,49 +577,52 @@ function AdminLogin({ onLoginSuccess, brand }) {
   }
 
   return (
-    <main className="w-full min-h-screen grid grid-cols-1 md:grid-cols-2 bg-[#0a0a0a] text-white">
+    <main className="admin-login-page w-full min-h-dvh grid grid-cols-1 md:grid-cols-2 bg-background text-on-surface">
       {/* LEFT SIDE: LUXURY IMAGE BANQUET */}
       <section 
-        className="hidden md:flex flex-col justify-end p-16 relative bg-cover bg-center border-r border-[#1a1a1a]"
+        className="hidden md:flex flex-col justify-end p-10 lg:p-16 relative bg-cover bg-center border-r border-outline-variant"
         style={{ backgroundImage: "url('/luxury_banquet_login.png')" }}
       >
         {/* Dark Overlay for premium text contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent z-0" />
         
         <div className="relative z-10 max-w-lg space-y-4">
-          <h2 className="font-headline-md text-3xl md:text-4xl text-white font-bold leading-tight font-display">
+          <h2 className="font-headline-md text-3xl md:text-4xl text-white font-bold leading-tight font-display text-balance">
             Secure Access to the Executive Suite
           </h2>
           <div className="w-20 h-0.5 bg-[#d4af37]"></div>
-          <p className="text-on-surface-variant/80 text-sm leading-relaxed font-body">
+          <p className="text-white/75 text-sm leading-relaxed font-body text-pretty">
             Authorized personnel only. Access to the Queen's Banquet administrative dashboard requires multi-factor authentication and high-level security clearance.
           </p>
         </div>
       </section>
 
       {/* RIGHT SIDE: ADMIN ACCESS FORM */}
-      <section className="flex flex-col justify-between items-center p-8 md:p-16 min-h-screen bg-[#0a0a0a]">
+      <section className="relative flex flex-col justify-between items-center p-6 sm:p-8 md:p-12 lg:p-16 min-h-dvh bg-background pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+          <ThemeToggle />
+        </div>
         {/* Top spacer or brand indicator */}
-        <div className="w-full max-w-sm mt-12 space-y-8">
+        <div className="w-full max-w-sm mt-8 sm:mt-12 space-y-8">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#d4af37] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>crown</span>
-            <span className="font-headline-md text-[#d4af37] tracking-[0.2em] font-bold text-sm uppercase font-display">
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>crown</span>
+            <span className="font-headline-md text-primary tracking-[0.15em] sm:tracking-[0.2em] font-bold text-sm uppercase font-display">
               Queen's Banquet
             </span>
           </div>
 
           <div className="space-y-2">
-            <h1 className="font-headline-md text-2xl font-bold text-white font-display">Administrative Login</h1>
-            <p className="text-[#a0a0a0] text-xs">Enter your credentials to manage the portfolio.</p>
+            <h1 className="font-headline-md text-xl sm:text-2xl font-bold text-on-surface font-display">Administrative Login</h1>
+            <p className="text-on-surface-variant text-xs">Enter your credentials to manage the portfolio.</p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-[10px] text-[#d4af37] tracking-[0.1em] font-bold uppercase block">
+              <label className="text-[10px] text-primary tracking-[0.1em] font-bold uppercase block">
                 Corporate Email
               </label>
               <input
-                className="w-full bg-white text-black p-3.5 focus:ring-0 focus:outline-none text-xs rounded-none font-medium placeholder:text-neutral-400"
+                className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant p-3.5 focus:ring-0 focus:outline-none focus:border-primary text-xs rounded-none font-medium placeholder:text-on-surface-variant/50 text-[16px]"
                 name="email"
                 type="email"
                 value={credentials.email}
@@ -543,12 +634,12 @@ function AdminLogin({ onLoginSuccess, brand }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] text-[#d4af37] tracking-[0.1em] font-bold uppercase block">
+              <label className="text-[10px] text-primary tracking-[0.1em] font-bold uppercase block">
                 Access Token
               </label>
               <div className="relative w-full">
                 <input
-                  className="w-full bg-white text-black p-3.5 pr-12 focus:ring-0 focus:outline-none text-xs rounded-none font-mono"
+                  className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant p-3.5 pr-12 focus:ring-0 focus:outline-none focus:border-primary text-xs rounded-none font-mono text-[16px]"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={credentials.password}
@@ -559,8 +650,9 @@ function AdminLogin({ onLoginSuccess, brand }) {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-black flex items-center justify-center"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface flex items-center justify-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   <span className="material-symbols-outlined text-[20px]">
                     {showPassword ? 'visibility_off' : 'visibility'}
@@ -570,30 +662,30 @@ function AdminLogin({ onLoginSuccess, brand }) {
             </div>
 
             {error && (
-              <div className="text-red-400 text-xs mt-2 border border-red-500/20 bg-red-500/10 p-3">
+              <div className="text-error text-xs mt-2 border border-error/20 bg-error-container/40 p-3">
                 {error}
               </div>
             )}
 
             <button
-              className="w-full bg-[#d4af37] text-black font-semibold text-xs tracking-widest uppercase py-3.5 hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
+              className="w-full bg-primary-container text-on-primary-container font-semibold text-xs tracking-widest uppercase py-3.5 hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
               type="submit"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
 
-            <div className="flex justify-between items-center text-[11px] pt-2">
-              <span className="text-[#a0a0a0] hover:text-white cursor-pointer transition-colors">Forgot Credentials?</span>
-              <span className="text-[#d4af37] hover:brightness-110 cursor-pointer font-semibold transition-all">Request Access</span>
+            <div className="flex justify-between items-center text-[11px] pt-2 gap-3">
+              <span className="text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">Forgot Credentials?</span>
+              <span className="text-primary hover:brightness-110 cursor-pointer font-semibold transition-all">Request Access</span>
             </div>
           </form>
         </div>
 
         {/* Footer info at bottom */}
-        <div className="w-full flex items-center justify-center gap-2 mb-6">
-          <span className="material-symbols-outlined text-[#d4af37] text-sm">verified_user</span>
-          <span className="text-[9px] text-[#a0a0a0] tracking-[0.15em] font-semibold uppercase">
+        <div className="w-full flex items-center justify-center gap-2 mb-6 mt-10">
+          <span className="material-symbols-outlined text-primary text-sm shrink-0">verified_user</span>
+          <span className="text-[9px] text-on-surface-variant tracking-[0.12em] sm:tracking-[0.15em] font-semibold uppercase text-center">
             Multi-Factor Authentication Enabled
           </span>
         </div>
@@ -634,6 +726,7 @@ const defaultMockInquiries = [
 ];
 
 function Overview({ content, onNavigate }) {
+  const { resolvedTheme } = useTheme();
   const [inquiries, setInquiries] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(isApiEnabled());
@@ -715,7 +808,7 @@ function Overview({ content, onNavigate }) {
             borderColor: '#d4af37',
             borderWidth: 3,
             pointBackgroundColor: '#d4af37',
-            pointBorderColor: '#0a0a0a',
+            pointBorderColor: resolvedTheme === 'dark' ? '#16130b' : '#fbf9f9',
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 8,
@@ -733,12 +826,12 @@ function Overview({ content, onNavigate }) {
           scales: {
             y: {
               beginAtZero: true,
-              grid: { color: '#2a2a2a' },
-              ticks: { color: '#d0c5af', font: { family: 'Inter', size: 10 } }
+              grid: { color: resolvedTheme === 'dark' ? '#2a2a2a' : '#e3e2e2' },
+              ticks: { color: resolvedTheme === 'dark' ? '#d0c5af' : '#5f5e5e', font: { family: 'Inter', size: 10 } }
             },
             x: {
               grid: { display: false },
-              ticks: { color: '#d0c5af', font: { family: 'Inter', size: 10 } }
+              ticks: { color: resolvedTheme === 'dark' ? '#d0c5af' : '#5f5e5e', font: { family: 'Inter', size: 10 } }
             }
           }
         }
@@ -749,7 +842,7 @@ function Overview({ content, onNavigate }) {
       if (sparkChart) sparkChart.destroy();
       if (mainChart) mainChart.destroy();
     };
-  }, [isLoading]);
+  }, [isLoading, resolvedTheme]);
 
   const list = inquiries ?? [];
   const inquiriesToShow = list.length > 0 ? list : defaultMockInquiries;
@@ -781,15 +874,15 @@ function Overview({ content, onNavigate }) {
   }
 
   return (
-    <div className="grid grid-cols-12 gap-bento-gap auto-rows-[200px] text-on-surface">
+    <div className="grid grid-cols-12 gap-3 sm:gap-4 lg:gap-bento-gap auto-rows-auto md:auto-rows-[200px] text-on-surface">
       {/* Primary Metric Card */}
-      <div className="col-span-12 md:col-span-4 bento-card p-6 flex flex-col justify-between rounded-xl">
-        <div className="flex justify-between items-start">
-          <div>
+      <div className="col-span-12 md:col-span-4 bento-card p-4 sm:p-6 flex flex-col justify-between rounded-xl min-h-[160px]">
+        <div className="flex justify-between items-start gap-3">
+          <div className="min-w-0">
             <p className="font-label-caps text-label-caps text-primary uppercase text-[11px]">Total RSVP Inquiries</p>
             <h3 className="font-display-lg-mobile text-on-surface mt-2 text-2xl md:text-3xl font-bold">{totalInquiriesCount}</h3>
           </div>
-          <div className="p-2 bg-primary/10 rounded-lg flex items-center">
+          <div className="p-2 bg-primary/10 rounded-lg flex items-center shrink-0">
             <span className="material-symbols-outlined text-primary">mail</span>
           </div>
         </div>
@@ -804,12 +897,12 @@ function Overview({ content, onNavigate }) {
       </div>
 
       {/* Analytics Chart */}
-      <div className="col-span-12 md:col-span-8 bento-card p-6 rounded-xl flex flex-col justify-between">
-        <div className="flex justify-between items-center mb-4">
+      <div className="col-span-12 md:col-span-8 bento-card p-4 sm:p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
+        <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 mb-4">
           <p className="font-label-caps text-label-caps text-primary uppercase text-[11px]">RSVP Submissions (Weekly View)</p>
           <div className="flex gap-2">
-            <button className="px-3 py-1 text-[10px] border border-outline text-on-surface rounded-full hover:border-primary">Week</button>
-            <button className="px-3 py-1 text-[10px] border border-primary text-primary rounded-full">Month</button>
+            <button className="px-3 py-1 text-[10px] border border-outline text-on-surface rounded-full hover:border-primary" type="button">Week</button>
+            <button className="px-3 py-1 text-[10px] border border-primary text-primary rounded-full" type="button">Month</button>
           </div>
         </div>
         <div className="flex-1 relative min-h-[110px]">
@@ -818,25 +911,26 @@ function Overview({ content, onNavigate }) {
       </div>
 
       {/* Real-time Inquiries Table */}
-      <div className="col-span-12 bento-card rounded-xl overflow-hidden flex flex-col h-auto row-span-2">
-        <div className="p-6 border-b border-outline-variant flex justify-between items-center bg-surface-container">
-          <h4 className="font-headline-md text-headline-md text-on-surface">Active Inquiries</h4>
+      <div className="col-span-12 bento-card rounded-xl overflow-hidden flex flex-col h-auto md:row-span-2 min-w-0">
+        <div className="p-4 sm:p-6 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-surface-container">
+          <h4 className="font-headline-md text-lg sm:text-headline-md text-on-surface">Active Inquiries</h4>
           <button
-            className="bg-primary text-on-primary px-6 py-2 font-label-caps text-label-caps hover:brightness-110 transition-all text-xs"
+            className="bg-primary text-on-primary px-4 sm:px-6 py-2 font-label-caps text-label-caps hover:brightness-110 transition-all text-xs w-full sm:w-auto"
             onClick={() => onNavigate?.('inquiries')}
+            type="button"
           >
             Export Report
           </button>
         </div>
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto flex-1 -mx-0">
+          <table className="w-full text-left min-w-[640px]">
             <thead>
               <tr className="border-b border-outline-variant bg-surface-container-low">
-                <th className="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Guest Name</th>
-                <th className="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Package</th>
-                <th className="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Date</th>
-                <th className="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Status</th>
-                <th className="px-6 py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px] text-right">Action</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Guest Name</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Package</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Date</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px]">Status</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 font-label-caps text-label-caps text-on-surface-variant text-[11px] text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
@@ -851,32 +945,34 @@ function Overview({ content, onNavigate }) {
 
                 return (
                   <tr className="hover:bg-surface-container-high/50 transition-colors" key={inquiry.id}>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-outline-variant flex items-center justify-center text-xs font-bold text-on-surface">
+                        <div className="w-8 h-8 rounded-full bg-outline-variant flex items-center justify-center text-xs font-bold text-on-surface shrink-0">
                           {initials || 'EW'}
                         </div>
-                        <span className="font-title-sm text-on-surface">{inquiry.coupleName || 'Elizabeth Windsor'}</span>
+                        <span className="font-title-sm text-on-surface truncate max-w-[10rem] sm:max-w-none">{inquiry.coupleName || 'Elizabeth Windsor'}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${getPackageStyle(inquiry.coordinationNeed)}`}>
+                    <td className="px-4 sm:px-6 py-3 sm:py-4">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${getPackageStyle(inquiry.coordinationNeed)}`}>
                         {(inquiry.coordinationNeed || 'ROYAL SIGNATURE').toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 text-sm text-on-surface-variant whitespace-nowrap">
                       {formatShortDate(inquiry.preferredMeetingDate || inquiry.eventDate)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4">
                       <span className={`flex items-center gap-1.5 text-xs ${isApproved ? 'text-primary' : 'text-on-surface-variant'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${isApproved ? 'bg-primary animate-pulse' : 'bg-on-surface-variant'}`}></span>
                         {isApproved ? 'Approved' : 'Pending'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
                       <button
-                        className="material-symbols-outlined text-on-surface-variant hover:text-primary flex items-center justify-end w-full"
+                        className="material-symbols-outlined text-on-surface-variant hover:text-primary inline-flex items-center justify-end"
                         onClick={() => onNavigate?.('inquiries')}
+                        type="button"
+                        aria-label="Open inquiry"
                       >
                         more_vert
                       </button>
@@ -890,27 +986,27 @@ function Overview({ content, onNavigate }) {
       </div>
 
       {/* Secondary Metric */}
-      <div className="col-span-12 md:col-span-6 bento-card p-6 rounded-xl relative overflow-hidden group">
+      <div className="col-span-12 sm:col-span-6 bento-card p-4 sm:p-6 rounded-xl relative overflow-hidden group min-h-[140px]">
         <div className="relative z-10 flex flex-col justify-between h-full">
           <p className="font-label-caps text-label-caps text-primary uppercase text-[11px]">Venue Availability</p>
-          <h3 className="font-headline-md text-display-lg-mobile text-on-surface mt-2 text-3xl font-bold">84%</h3>
+          <h3 className="font-headline-md text-display-lg-mobile text-on-surface mt-2 text-2xl sm:text-3xl font-bold">84%</h3>
           <div className="w-full bg-outline-variant h-1 rounded-full mt-4 overflow-hidden">
             <div className="bg-primary h-full transition-all duration-1000" style={{ width: '84%' }}></div>
           </div>
         </div>
-        <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity flex items-center">
+        <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity flex items-center pointer-events-none">
           <span className="material-symbols-outlined text-[120px]">castle</span>
         </div>
       </div>
 
       {/* Tertiary Metric */}
-      <div className="col-span-12 md:col-span-6 bento-card p-6 rounded-xl relative overflow-hidden group">
+      <div className="col-span-12 sm:col-span-6 bento-card p-4 sm:p-6 rounded-xl relative overflow-hidden group min-h-[140px]">
         <div className="relative z-10 flex flex-col justify-between h-full">
           <p className="font-label-caps text-label-caps text-primary uppercase text-[11px]">Average Inquiry Time</p>
-          <h3 className="font-headline-md text-display-lg-mobile text-on-surface mt-2 text-3xl font-bold">12.4m</h3>
+          <h3 className="font-headline-md text-display-lg-mobile text-on-surface mt-2 text-2xl sm:text-3xl font-bold">12.4m</h3>
           <p className="text-xs text-on-surface-variant mt-auto">Exceeding concierge standard by 2m</p>
         </div>
-        <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity flex items-center">
+        <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity flex items-center pointer-events-none">
           <span className="material-symbols-outlined text-[120px]">timer</span>
         </div>
       </div>
@@ -955,7 +1051,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
     <div className="space-y-8 text-on-surface">
 
       {/* ── SECTION 1: Admin Profile ── */}
-      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-8">
+      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-5 sm:p-6 lg:p-8">
         <div className="flex items-center gap-3 mb-6">
           <span className="material-symbols-outlined text-primary text-[20px]">manage_accounts</span>
           <span className="font-label-caps text-label-caps text-primary uppercase text-[11px] tracking-[0.12em]">Admin Profile</span>
@@ -1041,7 +1137,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
       </div>
 
       {/* ── SECTION 2: Brand Identity ── */}
-      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-8">
+      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-5 sm:p-6 lg:p-8">
         <div className="flex items-center gap-3 mb-6">
           <span className="material-symbols-outlined text-primary text-[20px]">shield</span>
           <span className="font-label-caps text-label-caps text-primary uppercase text-[11px] tracking-[0.12em]">Brand Identity</span>
@@ -1071,7 +1167,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
       </div>
 
       {/* ── SECTION 3: Hero Content ── */}
-      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-8">
+      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-5 sm:p-6 lg:p-8">
         <div className="flex items-center gap-3 mb-6">
           <span className="material-symbols-outlined text-primary text-[20px]">newspaper</span>
           <span className="font-label-caps text-label-caps text-primary uppercase text-[11px] tracking-[0.12em]">Hero Content</span>
@@ -1099,7 +1195,7 @@ function BrandHeroEditor({ draft, updateDraft }) {
       </div>
 
       {/* ── SECTION 4: Account Security ── */}
-      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-8">
+      <div className="bento-card bg-surface-container-low border border-outline-variant rounded-xl p-5 sm:p-6 lg:p-8">
         <div className="flex items-center gap-3 mb-6">
           <span className="material-symbols-outlined text-primary text-[20px]">lock</span>
           <span className="font-label-caps text-label-caps text-primary uppercase text-[11px] tracking-[0.12em]">Account Security</span>
@@ -1201,7 +1297,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
       {/* BENTO GRID SYSTEM */}
       <div className="grid grid-cols-12 gap-bento-gap">
         {/* HEADER INTRO */}
-        <div className="col-span-12 md:col-span-8 bento-card bg-surface-container-low border border-outline-variant p-8 flex flex-col justify-between rounded-xl">
+        <div className="col-span-12 md:col-span-8 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 flex flex-col justify-between rounded-xl">
           <div>
             <span className="font-label-caps text-label-caps text-primary uppercase block mb-4 text-[11px]">Core Identity</span>
             <h3 className="font-display-lg text-display-lg text-on-background mb-6 leading-tight text-3xl md:text-4xl font-bold">
@@ -1214,7 +1310,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
         </div>
 
         {/* QUICK ACTIONS / STATUS */}
-        <div className="col-span-12 md:col-span-4 bento-card bg-surface-container-low border border-outline-variant p-8 relative overflow-hidden rounded-xl">
+        <div className="col-span-12 md:col-span-4 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 relative overflow-hidden rounded-xl">
           <div className="relative z-10">
             <span className="font-label-caps text-label-caps text-primary uppercase block mb-6 text-[11px]">Status</span>
             <div className="space-y-6">
@@ -1237,7 +1333,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
         </div>
 
         {/* BRAND STORY EDITOR */}
-        <div className="col-span-12 md:col-span-9 bento-card bg-surface-container-low border border-outline-variant p-8 rounded-xl">
+        <div className="col-span-12 md:col-span-9 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h4 className="font-headline-md text-headline-md text-on-surface font-bold text-xl">Brand Story</h4>
@@ -1277,7 +1373,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
         </div>
 
         {/* STATS / KPI */}
-        <div className="col-span-12 md:col-span-3 bento-card bg-surface-container-low border border-outline-variant p-8 flex flex-col justify-between group rounded-xl">
+        <div className="col-span-12 md:col-span-3 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 flex flex-col justify-between group rounded-xl">
           <div>
             <span className="material-symbols-outlined text-primary mb-4 text-3xl">history_edu</span>
             <h5 className="font-headline-md text-headline-md text-on-surface text-base">Word Count</h5>
@@ -1289,7 +1385,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
         </div>
 
         {/* MISSION STATEMENT */}
-        <div className="col-span-12 md:col-span-5 bento-card bg-surface-container-low border border-outline-variant p-8 rounded-xl flex flex-col justify-between">
+        <div className="col-span-12 md:col-span-5 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl flex flex-col justify-between">
           <div>
             <span className="font-label-caps text-label-caps text-primary uppercase block mb-6 text-[11px]">Mission & Values</span>
             <div className="space-y-6">
@@ -1341,7 +1437,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
         </div>
 
         {/* CORE VALUES GRID */}
-        <div className="col-span-12 bento-card bg-surface-container-low border border-outline-variant p-8 rounded-xl">
+        <div className="col-span-12 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h4 className="font-headline-md text-headline-md text-on-surface font-bold text-xl">Core Values Portfolio</h4>
@@ -1380,6 +1476,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
                         onClick={() =>
                           requestConfirm({
                             message: `Remove this core value point? This cannot be undone.`,
+                            confirmLabel: 'Remove',
                             onConfirm: () =>
                               updateDraft((next) => {
                                 next.experiencePoints.splice(index, 1);
@@ -1440,7 +1537,7 @@ function ExperienceEditor({ draft, updateDraft, requestConfirm }) {
       {/* INLINE IMAGE EDIT MODAL */}
       {editingImageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-surface-container border border-outline-variant p-8 max-w-lg w-full rounded-xl">
+          <div className="bg-surface-container border border-outline-variant p-5 sm:p-6 lg:p-8 max-w-lg w-full rounded-xl">
             <h4 className="font-headline-md text-headline-md text-on-surface text-lg font-bold mb-2">Edit Image URL</h4>
             <p className="text-on-surface-variant text-xs mb-6">Enter a public image URL to update this brand photography slot.</p>
             <input
@@ -1481,7 +1578,7 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
       {/* 12-COLUMN SPLIT BENTO GRID */}
       <div className="grid grid-cols-12 gap-bento-gap">
         {/* LEFT PANEL: BOOKING FORM COPY */}
-        <div className="col-span-12 lg:col-span-7 bento-card bg-surface-container-low border border-outline-variant p-8 rounded-xl flex flex-col justify-between">
+        <div className="col-span-12 lg:col-span-7 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl flex flex-col justify-between">
           <div>
             <div className="mb-8">
               <span className="font-label-caps text-label-caps text-primary uppercase block mb-4 text-[11px]">Booking Form Configuration</span>
@@ -1552,7 +1649,7 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
         </div>
 
         {/* RIGHT PANEL: CONTACT CHANNELS SIDEPANEL */}
-        <div className="col-span-12 lg:col-span-5 bento-card bg-surface-container-low border border-outline-variant p-8 rounded-xl flex flex-col justify-between h-auto">
+        <div className="col-span-12 lg:col-span-5 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl flex flex-col justify-between h-auto">
           <div>
             <div className="mb-8 flex justify-between items-center">
               <div>
@@ -1584,6 +1681,7 @@ function ContactEditor({ draft, updateDraft, requestConfirm }) {
                       onClick={() =>
                         requestConfirm({
                           message: `Remove the "${channel.label || 'contact'}" channel? This cannot be undone.`,
+                          confirmLabel: 'Remove',
                           onConfirm: () =>
                             updateDraft((next) => {
                               next.contactChannels.splice(index, 1);
@@ -1670,7 +1768,7 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
     <div className="space-y-bento-gap text-on-surface">
       {/* HERO INTRO EDIT BENTO */}
       <div className="grid grid-cols-12 gap-bento-gap">
-        <div className="col-span-12 bento-card bg-surface-container-low border border-outline-variant p-8 rounded-xl space-y-6">
+        <div className="col-span-12 bento-card bg-surface-container-low border border-outline-variant p-5 sm:p-6 lg:p-8 rounded-xl space-y-6">
           <div>
             <span className="font-label-caps text-label-caps text-primary uppercase block mb-4 text-[11px]">Services Catalog Header</span>
             <h3 className="font-headline-md text-headline-md text-on-surface text-lg font-bold">Catalog Hero Intro</h3>
@@ -1863,6 +1961,7 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
                   onClick={() =>
                     requestConfirm({
                       message: `Remove "${item.title || 'service'}" card? This cannot be undone.`,
+                      confirmLabel: 'Remove',
                       onConfirm: () =>
                         updateDraft((next) => {
                           next.services.splice(index, 1);
@@ -1881,7 +1980,7 @@ function ServicesEditor({ draft, updateDraft, requestConfirm }) {
       {/* INLINE IMAGE EDIT MODAL */}
       {editingImageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-surface-container border border-outline-variant p-8 max-w-lg w-full rounded-xl">
+          <div className="bg-surface-container border border-outline-variant p-5 sm:p-6 lg:p-8 max-w-lg w-full rounded-xl">
             <h4 className="font-headline-md text-headline-md text-on-surface text-lg font-bold mb-2">Edit Image URL</h4>
             <p className="text-on-surface-variant text-xs mb-6">Enter a public image URL to update this service catalog card.</p>
             <input
@@ -1953,7 +2052,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
               key={index}
               className={`col-span-12 lg:col-span-4 bg-surface-container border ${
                 isFeatured ? 'border-primary shadow-[0_0_30px_rgba(212,175,55,0.05)]' : 'border-outline-variant'
-              } p-8 group hover:border-primary transition-all duration-300 flex flex-col relative rounded-xl`}
+              } p-5 sm:p-6 lg:p-8 group hover:border-primary transition-all duration-300 flex flex-col relative rounded-xl`}
             >
               {isFeatured && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-on-primary px-6 py-1 font-label-caps text-[10px] tracking-[0.2em] uppercase rounded-full">
@@ -1998,6 +2097,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
                     onClick={() =>
                       requestConfirm({
                         message: `Remove the "${item.name || 'package'}" package tier? This cannot be undone.`,
+                        confirmLabel: 'Remove',
                         onConfirm: () =>
                           updateDraft((next) => {
                             next.packages.splice(index, 1);
@@ -2107,7 +2207,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
 
       {/* ANALYTICS & CUSTOMIZATION BENTOS */}
       <div className="grid grid-cols-12 gap-bento-gap mt-8">
-        <div className="col-span-12 lg:col-span-8 bg-surface-container border border-outline-variant p-8 flex flex-col md:flex-row gap-8 items-center rounded-xl">
+        <div className="col-span-12 lg:col-span-8 bg-surface-container border border-outline-variant p-5 sm:p-6 lg:p-8 flex flex-col md:flex-row gap-8 items-center rounded-xl">
           <div className="md:w-1/3">
             <div className="w-full aspect-square border border-outline-variant p-1">
               <div
@@ -2124,7 +2224,7 @@ function PackagesEditor({ draft, updateDraft, requestConfirm }) {
             <p className="text-body-md text-on-surface-variant mb-6 text-sm">
               The Heirloom package remains your most selected offering, accounting for 62% of revenue this quarter. Consider seasonal adjustments to the Royal Signature menu to increase boutique conversions.
             </p>
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
               <div>
                 <p className="font-label-caps text-[10px] text-primary uppercase">Revenue</p>
                 <p className="font-headline-md text-xl font-bold text-on-surface">$1.2M</p>
@@ -2340,7 +2440,7 @@ function TestimonialsEditor({ draft, updateDraft, requestConfirm }) {
             >
               <div className="w-16 h-16 flex-shrink-0 bg-surface-container-highest overflow-hidden border border-outline-variant rounded-lg flex items-center justify-center">
                 {item.photoUrl ? (
-                  <img className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" alt="" src={item.photoUrl} />
+                  <img className="w-full h-full object-cover transition-all duration-500" alt={item.author || 'Client'} src={item.photoUrl} />
                 ) : (
                   <span className="font-display-lg text-primary text-xl font-bold">{initials}</span>
                 )}
@@ -2406,6 +2506,7 @@ function TestimonialsEditor({ draft, updateDraft, requestConfirm }) {
                     onClick={() =>
                       requestConfirm({
                         message: `Remove the testimonial from "${item.author || 'this client'}"? This cannot be undone.`,
+                        confirmLabel: 'Remove',
                         onConfirm: () =>
                           updateDraft((next) => {
                             next.testimonials.splice(mainIndex >= 0 ? mainIndex : idx, 1);
@@ -2425,12 +2526,12 @@ function TestimonialsEditor({ draft, updateDraft, requestConfirm }) {
       {/* EDIT MODAL DIALOG */}
       {isEditing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-surface-container border border-outline-variant p-8 max-w-lg w-full rounded-xl space-y-6">
+          <div className="bg-surface-container border border-outline-variant p-5 sm:p-6 lg:p-8 max-w-lg w-full rounded-xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div>
               <h4 className="font-headline-md text-headline-md text-on-surface text-lg font-bold">
                 {editIndex === null ? 'Create Testimonial' : 'Edit Testimonial'}
               </h4>
-              <p className="text-on-surface-variant text-xs mt-1">Configure client details, quotes, ratings, and avatars.</p>
+              <p className="text-on-surface-variant text-xs mt-1">Configure client details, quotes, ratings, and photos.</p>
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -2454,30 +2555,94 @@ function TestimonialsEditor({ draft, updateDraft, requestConfirm }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-primary uppercase block font-semibold">Star Rating (1-5)</label>
-                  <select
-                    className="w-full bg-surface-container-highest border border-outline-variant p-2.5 text-on-surface rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                    value={formData.rating}
-                    onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                  >
-                    <option value={1}>1 Star</option>
-                    <option value={2}>2 Stars</option>
-                    <option value={3}>3 Stars</option>
-                    <option value={4}>4 Stars</option>
-                    <option value={5}>5 Stars</option>
-                  </select>
+              <div className="space-y-1">
+                <label className="text-[10px] text-primary uppercase block font-semibold">Star Rating (1-5)</label>
+                <select
+                  className="w-full bg-surface-container-highest border border-outline-variant p-2.5 text-on-surface rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                  value={formData.rating}
+                  onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                >
+                  <option value={1}>1 Star</option>
+                  <option value={2}>2 Stars</option>
+                  <option value={3}>3 Stars</option>
+                  <option value={4}>4 Stars</option>
+                  <option value={5}>5 Stars</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-outline-variant bg-surface-container-low p-3">
+                <label className="text-[10px] text-primary uppercase block font-semibold">Client Photo</label>
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                  Upload a portrait of the client. This photo appears on the landing page testimonials.
+                </p>
+                {formData.photoUrl ? (
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={formData.photoUrl}
+                      alt=""
+                      className="w-16 h-16 rounded-lg object-cover border border-outline-variant"
+                    />
+                    <button
+                      type="button"
+                      className="border border-outline-variant text-on-surface px-3 py-1.5 font-label-caps text-[10px] hover:border-primary transition-all rounded-lg"
+                      onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                    >
+                      Remove photo
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-lg border border-dashed border-outline-variant bg-surface-container-highest flex items-center justify-center">
+                    <span className="material-symbols-outlined text-on-surface-variant text-[28px]">person</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="space-y-1 block min-w-0">
+                    <span className="text-[10px] text-on-surface-variant uppercase font-semibold">Photo URL</span>
+                    <input
+                      className="w-full bg-surface-container-highest border border-outline-variant p-2.5 text-on-surface rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono"
+                      type="url"
+                      placeholder="https://example.com/photo.jpg"
+                      value={typeof formData.photoUrl === 'string' && formData.photoUrl.startsWith('data:') ? '' : formData.photoUrl}
+                      onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+                    />
+                  </label>
+                  <label className="space-y-1 block">
+                    <span className="text-[10px] text-on-surface-variant uppercase font-semibold">Upload photo</span>
+                    <span className="flex items-center justify-center gap-2 w-full min-h-[38px] bg-surface-container-highest border border-outline-variant rounded-lg text-xs font-semibold text-on-surface cursor-pointer hover:border-primary transition-colors">
+                      <span className="material-symbols-outlined text-[18px]">upload</span>
+                      Choose image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          if (!file.type.startsWith('image/')) {
+                            window.alert('Please choose an image file.');
+                            event.target.value = '';
+                            return;
+                          }
+                          if (file.size > 2 * 1024 * 1024) {
+                            window.alert('Please choose an image under 2MB.');
+                            event.target.value = '';
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setFormData((current) => ({ ...current, photoUrl: reader.result }));
+                          };
+                          reader.onerror = () => {
+                            window.alert('Unable to upload this image. Please try another file.');
+                          };
+                          reader.readAsDataURL(file);
+                          event.target.value = '';
+                        }}
+                      />
+                    </span>
+                  </label>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-primary uppercase block font-semibold">Avatar Image URL</label>
-                  <input
-                    className="w-full bg-surface-container-highest border border-outline-variant p-2.5 text-on-surface rounded-lg text-xs focus:ring-1 focus:ring-primary focus:outline-none font-mono"
-                    type="text"
-                    value={formData.photoUrl}
-                    onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                  />
-                </div>
+                <p className="text-[10px] text-on-surface-variant">JPG, PNG, or WebP up to 2MB.</p>
               </div>
 
               <div className="space-y-1">
@@ -2543,6 +2708,7 @@ function EditableCards({
               onClick={() =>
                 requestConfirm({
                   message: `Remove this ${itemLabel}? This cannot be undone.`,
+                  confirmLabel: 'Remove',
                   onConfirm: () => updateDraft((next) => { next[path].splice(index, 1); }),
                 })
               }
