@@ -50,7 +50,7 @@ function Contact() {
         <span className="text-primary font-label-sm uppercase tracking-widest mb-4 block">
           Access Excellence
         </span>
-        <h2 className="font-headline-lg text-headline-lg mb-8">
+        <h2 className="font-headline-lg text-headline-lg mb-8 text-center mx-auto">
           Request an Invitation
         </h2>
         <p className="font-body-lg text-tertiary mb-16 leading-relaxed">

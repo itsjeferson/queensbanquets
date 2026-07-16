@@ -1,8 +1,8 @@
 export const navigationItems = [
   { label: 'HOME', href: '#top' },
-  { label: 'SERVICES', href: '#services' },
-  { label: 'PACKAGES', href: '#packages' },
   { label: 'ABOUT US', href: '#about' },
+  { label: 'PACKAGES', href: '#packages' },
+  { label: 'TESTIMONIALS', href: '#testimonials' },
   { label: 'CONTACT', href: '#contact' },
 ];
 

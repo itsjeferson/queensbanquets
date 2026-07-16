@@ -28,7 +28,7 @@ function Testimonials() {
           <span className="text-primary font-label-sm uppercase tracking-widest mb-4 block">
             Client Reflections
           </span>
-          <h2 className="font-headline-lg text-headline-lg">
+          <h2 className="font-headline-lg text-headline-lg mb-8 text-center mx-auto">
             Praise from the Discerning
           </h2>
         </div>

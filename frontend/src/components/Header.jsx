@@ -117,7 +117,7 @@ function Header() {
               href="#contact"
               className="hidden lg:block px-6 py-2 border border-primary text-primary font-label-md uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all duration-300 active:scale-95"
             >
-              Request Meeting
+              Request a Meeting
             </a>
 
             {/* Mobile Menu Button */}
@@ -177,7 +177,7 @@ function Header() {
             className="mt-4 w-full py-3 text-center border border-primary text-primary font-label-md uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all active:scale-95"
             onClick={closeMenu}
           >
-            Request Meeting
+            Request a Meeting
           </a>
         </nav>
       </div>
