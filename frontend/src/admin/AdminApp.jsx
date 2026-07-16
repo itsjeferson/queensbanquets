@@ -577,52 +577,64 @@ function AdminLogin({ onLoginSuccess, brand }) {
   }
 
   return (
-    <main className="admin-login-page w-full min-h-dvh grid grid-cols-1 md:grid-cols-2 bg-background text-on-surface">
-      {/* LEFT SIDE: LUXURY IMAGE BANQUET */}
-      <section 
-        className="hidden md:flex flex-col justify-end p-10 lg:p-16 relative bg-cover bg-center border-r border-outline-variant"
+    <main className="admin-login-page bg-background text-on-surface">
+      <section
+        className="admin-login-hero"
         style={{ backgroundImage: "url('/luxury_banquet_login.png')" }}
+        aria-hidden="true"
       >
-        {/* Dark Overlay for premium text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent z-0" />
-        
-        <div className="relative z-10 max-w-lg space-y-4">
-          <h2 className="font-headline-md text-3xl md:text-4xl text-white font-bold leading-tight font-display text-balance">
+        <div className="admin-login-hero-overlay" />
+        <div className="admin-login-hero-copy">
+          <h2 className="font-headline-md text-[clamp(1.75rem,3vw,2.25rem)] text-white font-bold leading-tight font-display text-balance">
             Secure Access to the Executive Suite
           </h2>
-          <div className="w-20 h-0.5 bg-[#d4af37]"></div>
+          <div className="w-20 h-0.5 bg-[#d4af37]" />
           <p className="text-white/75 text-sm leading-relaxed font-body text-pretty">
-            Authorized personnel only. Access to the Queen's Banquet administrative dashboard requires multi-factor authentication and high-level security clearance.
+            Authorized personnel only. Access to the Queen&apos;s Banquet administrative dashboard requires multi-factor authentication and high-level security clearance.
           </p>
         </div>
       </section>
 
-      {/* RIGHT SIDE: ADMIN ACCESS FORM */}
-      <section className="relative flex flex-col justify-between items-center p-6 sm:p-8 md:p-12 lg:p-16 min-h-dvh bg-background pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+      <section
+        className="admin-login-mobile-banner md:hidden"
+        style={{ backgroundImage: "url('/luxury_banquet_login.png')" }}
+        aria-hidden="true"
+      >
+        <div className="space-y-2 text-center">
+          <p className="text-[#d4af37] text-[10px] font-bold uppercase tracking-[0.18em]">
+            Queen&apos;s Banquet
+          </p>
+          <h2 className="font-display text-white text-lg font-semibold leading-snug text-balance">
+            Administrative Access
+          </h2>
+        </div>
+      </section>
+
+      <section className="admin-login-form-panel">
+        <div className="admin-login-theme-toggle">
           <ThemeToggle />
         </div>
-        {/* Top spacer or brand indicator */}
-        <div className="w-full max-w-sm mt-8 sm:mt-12 space-y-8">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>crown</span>
-            <span className="font-headline-md text-primary tracking-[0.15em] sm:tracking-[0.2em] font-bold text-sm uppercase font-display">
-              Queen's Banquet
+
+        <div className="admin-login-form-inner">
+          <div className="admin-login-brand-row">
+            <span className="material-symbols-outlined text-primary text-2xl shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+              crown
+            </span>
+            <span className="text-primary font-display">
+              Queen&apos;s Banquet
             </span>
           </div>
 
-          <div className="space-y-2">
-            <h1 className="font-headline-md text-xl sm:text-2xl font-bold text-on-surface font-display">Administrative Login</h1>
-            <p className="text-on-surface-variant text-xs">Enter your credentials to manage the portfolio.</p>
+          <div className="admin-login-heading">
+            <h1>Administrative Login</h1>
+            <p>Enter your credentials to manage the portfolio.</p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label className="text-[10px] text-primary tracking-[0.1em] font-bold uppercase block">
-                Corporate Email
-              </label>
+          <form className="admin-login-form" onSubmit={handleSubmit}>
+            <div className="admin-login-field">
+              <label htmlFor="admin-login-email">Corporate Email</label>
               <input
-                className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant p-3.5 focus:ring-0 focus:outline-none focus:border-primary text-xs rounded-none font-medium placeholder:text-on-surface-variant/50 text-[16px]"
+                id="admin-login-email"
                 name="email"
                 type="email"
                 value={credentials.email}
@@ -633,13 +645,11 @@ function AdminLogin({ onLoginSuccess, brand }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] text-primary tracking-[0.1em] font-bold uppercase block">
-                Access Token
-              </label>
-              <div className="relative w-full">
+            <div className="admin-login-field">
+              <label htmlFor="admin-login-password">Access Token</label>
+              <div className="admin-login-password-wrap">
                 <input
-                  className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant p-3.5 pr-12 focus:ring-0 focus:outline-none focus:border-primary text-xs rounded-none font-mono text-[16px]"
+                  id="admin-login-password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={credentials.password}
@@ -650,7 +660,7 @@ function AdminLogin({ onLoginSuccess, brand }) {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface flex items-center justify-center"
+                  className="admin-login-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
@@ -661,33 +671,22 @@ function AdminLogin({ onLoginSuccess, brand }) {
               </div>
             </div>
 
-            {error && (
-              <div className="text-error text-xs mt-2 border border-error/20 bg-error-container/40 p-3">
-                {error}
-              </div>
-            )}
+            {error ? <p className="admin-login-error">{error}</p> : null}
 
-            <button
-              className="w-full bg-primary-container text-on-primary-container font-semibold text-xs tracking-widest uppercase py-3.5 hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
-              type="submit"
-              disabled={isSubmitting}
-            >
+            <button className="admin-login-submit" type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
 
-            <div className="flex justify-between items-center text-[11px] pt-2 gap-3">
-              <span className="text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">Forgot Credentials?</span>
-              <span className="text-primary hover:brightness-110 cursor-pointer font-semibold transition-all">Request Access</span>
+            <div className="admin-login-links">
+              <span>Forgot Credentials?</span>
+              <span>Request Access</span>
             </div>
           </form>
         </div>
 
-        {/* Footer info at bottom */}
-        <div className="w-full flex items-center justify-center gap-2 mb-6 mt-10">
+        <div className="admin-login-footer">
           <span className="material-symbols-outlined text-primary text-sm shrink-0">verified_user</span>
-          <span className="text-[9px] text-on-surface-variant tracking-[0.12em] sm:tracking-[0.15em] font-semibold uppercase text-center">
-            Multi-Factor Authentication Enabled
-          </span>
+          <span>Multi-Factor Authentication Enabled</span>
         </div>
       </section>
     </main>
