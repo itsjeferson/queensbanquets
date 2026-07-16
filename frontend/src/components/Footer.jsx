@@ -76,6 +76,7 @@ function Footer() {
     content: { footerContent, contactChannels = [], brand },
   } = useLandingContent();
   const year = new Date().getFullYear();
+  const brandName = brand?.name || "Queen's Banquet Events";
 
   const ownerChannel = findChannel(contactChannels, 'Owner');
   const ownerName = ownerChannel?.value?.trim() || brand?.owner?.trim() || 'Marou Madrid';
@@ -115,9 +116,12 @@ function Footer() {
         
         {/* Brand & Info */}
         <ScrollReveal as="div" className="flex flex-col sm:col-span-2 md:col-span-1" variant="fade-up">
-          <div className="font-headline-lg text-[clamp(1.5rem,4vw,2rem)] md:text-headline-lg text-primary mb-4 italic text-balance">
-            Queen's Banquet Events
-          </div>
+          <a
+            href="#top"
+            className="font-headline-lg text-[clamp(1.5rem,4vw,2rem)] md:text-headline-lg text-primary mb-4 italic text-balance w-fit hover:text-primary-container transition-colors"
+          >
+            {brandName}
+          </a>
           <p className="font-body-md text-tertiary max-w-sm mb-4 leading-relaxed text-pretty">
             {footerContent.tagline ||
               "Curating the world's most exclusive celebrations with precision and artistic flair since 1994."}
